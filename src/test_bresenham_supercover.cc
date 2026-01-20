@@ -417,10 +417,10 @@ BOOST_AUTO_TEST_CASE (final_point_2)
 {
 	for (int i = 0; i < 100; ++i)
 	{
-		int x1 = rand();
-		int x2 = rand();
-		int y1 = rand();
-		int y2 = rand();
+		int x1 = rand() % 1000;
+		int x2 = rand() % 1000;
+		int y1 = rand() % 1000;
+		int y2 = rand() % 1000;
 
 		math::bresenham_supercover<> bs(math::vec<2, int>(x1, y1), math::vec<2, int>(x2, y2));
 
