@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.15)
 project(vek VERSION 1.0.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Library sources
@@ -61,4 +61,24 @@ if(VEK_BUILD_TESTS)
 
     enable_testing()
     add_test(NAME vek_tests COMMAND vek_tests)
+endif()
+
+# Python bindings
+option(VEK_BUILD_PYTHON "Build Python bindings" OFF)
+
+if(VEK_BUILD_PYTHON)
+    find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+
+    # Fetch nanobind
+    include(FetchContent)
+    FetchContent_Declare(
+        nanobind
+        GIT_REPOSITORY https://github.com/wjakob/nanobind
+        GIT_TAG v2.4.0
+    )
+    FetchContent_MakeAvailable(nanobind)
+
+    nanobind_add_module(pyvek src/python_bindings.cc)
+    target_link_libraries(pyvek PRIVATE vek)
+    target_include_directories(pyvek PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 endif()
