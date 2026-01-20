@@ -160,7 +160,7 @@ public:
 		return tangent.length() * normal.length() * binormal.length();
 	}
 
-	// получить aabb
+	// get aabb
 	void get_aabb(aabb_t &b) const {
 		b.lo = b.hi = origin;
 		b.extend(origin + tangent);
@@ -172,34 +172,34 @@ public:
 		b.extend(origin + tangent + normal + binormal);
 	}
 
-	// трансформировать obb матрицей tf
+	// transform obb by matrix tf
 	void transform(const matrix_t &tf) {
-		// получить координаты точек - вершин
+		// get vertex point coordinates
 		vec_t O = origin,
 			 Ox = tangent + origin,
 			 Oy = normal + origin,
 			 Oz = binormal + origin;
 
-		// трансформировать эти координаты
+		// transform these coordinates
 		mul(origin, O, tf);
 		mul(tangent, Ox, tf);
 		mul(normal, Oy, tf);
 		mul(binormal, Oz, tf);
 
-		// вычислить значения tangent, normal, binormal относительно origin
+		// compute tangent, normal, binormal values relative to origin
 		tangent -= origin;
 		normal -= origin;
 		binormal -= origin;
 	}
 
-	// получить координаты вершины
+	// get vertex coordinates
 	void get_vertex(size_t vertex_number, vec_t &position) const {
 		position = origin +	scalar_t(vertex_number & 1) * tangent;
 		if (vertex_number & 2) position += normal;
 		if (vertex_number & 4) position += binormal;
 	}
 
-	// получить obb сегмента
+	// get segment obb
 	void get_segment(size_t segment_number, obb &segment_obb) {
 		segment_obb.tangent = tangent / scalar_t(2);
 		segment_obb.normal = normal / scalar_t(2);
@@ -211,20 +211,20 @@ public:
 		if(segment_number & 4) segment_obb.origin += segment_obb.binormal;
 	}
 
-	// получить координаты вектора в локальной системе координат с
-	// базисом (tangent,normal,binormal)
+	// get vector coordinates in local coordinate system with
+	// basis (tangent, normal, binormal)
 	void world_to_local_vector(vec_t &v, vec_t const &v0) const;
 
 	void local_to_world_vector(vec_t &v, vec_t const &v0) const {
 		v = v0.x * tangent + v0.y * normal + v0.z * binormal;
 	}
 
-	// получить координаты точки в локальной системе координат
+	// get point coordinates in local coordinate system
 	void world_to_local_point(vec_t &v,vec_t const &v0) const {
 		world_to_local_vector(v, v0 - origin);
 	}
 
-	// перенести прямую в локальную систему координат
+	// transform ray to local coordinate system
 	void world_to_local_ray(ray<ARITY, scalar> &r,const ray<ARITY, scalar> &r0) const {
 		world_to_local_point(r.r0,r0.r0);
 		world_to_local_vector(r.a,r0.a);
@@ -232,7 +232,7 @@ public:
 
 	void world_to_local_plane(plane<scalar_t> &p, plane<scalar_t> const &p0) const;
 
-	// проверить принадлежность точки
+	// check if point is contained
 	bool contains(vec_t const &v) const {
 		vec_t v1;
 		world_to_local_point(v1, v);
@@ -241,36 +241,36 @@ public:
 		    && v1.z>=0 && v1.z<=1;
 	}
 
-	// проверить принадлежность треугольника
+	// check if triangle is contained
 	bool contains(const triangle<ARITY, scalar_t> &tri) const {
 		return contains(tri.A) && contains(tri.B) && contains(tri.C);
 	}
 
-	// проверить пересечение с лучом
+	// check ray intersection
 	 bool trace(const ray<ARITY, scalar> &r, scalar_t t_min = 1,
 			 scalar_t t_max = 1) const;
 
-	// проверить на содержание obb
+	// check if obb is contained
 	bool contains(const obb &r) const;
 
-	// пересекаются ли obb и треугольник?
+	// do obb and triangle intersect?
 	bool test_intersection(const triangle<ARITY, scalar_t> &tri) const {
 		return !test_nonintersection(tri);
 	}
 
-	// пересекаются ли два obb?
+	// do two obbs intersect?
 	bool test_intersection(const obb &box) const {
 		return !test_nonintersection(box) && !box.test_nonintersection(*this);
 	}
 
-	// столкнутся ли два движущихся obb в интервале времени [t_min, t_max]?
+	// will two moving obbs collide in time interval [t_min, t_max]?
 	bool test_collision(triangle<ARITY, scalar_t> const &tri, vec_t const &vel, scalar_t t_min = 0,
 		scalar_t t_max = 1) const
 	{
 		return !test_noncollision(tri, vel, t_min, t_max);
 	}
 
-	// столкнутся ли два движущихся obb в интервале времени [t_min, t_max]?
+	// will two moving obbs collide in time interval [t_min, t_max]?
 	bool test_collision(obb const &box, vec_t const &vel, scalar_t t_min = 0,
 		scalar_t t_max = 1) const
 	{
@@ -281,23 +281,23 @@ public:
 	bool is_basis_linearly_independent() const;
 
 private:
-	// проверить на не-пересечение с треугольником
+	// check for non-intersection with triangle
 	bool test_nonintersection(const triangle<ARITY, scalar_t> &r) const;
 
-	// проверить на одностороннее не-пересечение с obb
+	// check for one-sided non-intersection with obb
 	bool test_nonintersection(const obb &r) const;
 
-	// проверить на одностороннее не-столкновение с треугольником
-	// r -- данный треугольник
-	// vel -- скорость box относительно настоящего obb
-	// t_min, t_max -- интервал времени, внутри которого следует искать столкновение
+	// check for one-sided non-collision with triangle
+	// r -- the given triangle
+	// vel -- velocity of box relative to this obb
+	// t_min, t_max -- time interval within which to search for collision
 	bool test_noncollision(const triangle<ARITY, scalar_t> &r, vec_t const &vel, scalar_t t_min = 0,
 		scalar_t t_max = 1) const;
 
-	// проверить на одностороннее не-столкновение с obb
-	// r -- данный obb
-	// vel -- скорость box относительно настоящего obb
-	// t_min, t_max -- интервал времени, внутри которого следует искать столкновение
+	// check for one-sided non-collision with obb
+	// r -- the given obb
+	// vel -- velocity of box relative to this obb
+	// t_min, t_max -- time interval within which to search for collision
 	bool test_noncollision(const obb &r, vec_t const &vel, scalar_t t_min = 0,
 		scalar_t t_max = 1) const;
 };

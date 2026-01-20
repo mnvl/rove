@@ -17,7 +17,7 @@ template<int N,class T> class ray;
 template<int N,class T = scalar>
 class aabb {
 public:
-	// типы и константы
+	// types and constants
 	typedef T scalar_t;
 	typedef std::numeric_limits<scalar_t> limits_t;
 	static size_t const ARITY = N;
@@ -26,10 +26,10 @@ public:
 	static size_t const edges_count = vertices_count + (1 << (ARITY-1));
 	typedef ray<ARITY,scalar_t> ray_t;
 
-	// данные
+	// data
 	vec_t lo, hi;
 
-	// конструкторы
+	// constructors
 	aabb()
 	{
 	}
@@ -55,7 +55,7 @@ public:
 		hi = centre + delta;
 	}
 
-	// операции
+	// operations
 	void null() {
 		for(size_t n=0; n<ARITY; n++) {
 			lo.i[n] = +limits_t::max();
@@ -67,12 +67,12 @@ public:
 		v = v0 / (hi - lo);
 	}
 
-	// получить координаты точки в локальной системе координат
+	// get point coordinates in local coordinate system
 	void world_to_local_point(vec_t &v,vec_t const &v0) const {
 		world_to_local_vector(v, v0 - lo);
 	}
 
-	// перенести прямую в локальную систему координат
+	// transform ray to local coordinate system
 	void world_to_local_ray(ray_t &r,ray_t const &r0) const {
 		world_to_local_point(r.r0,r0.r0);
 		world_to_local_vector(r.a,r0.a);
@@ -102,7 +102,7 @@ public:
 		extend(b.hi);
 	}
 
-	// пересечения
+	// intersections
 	bool contains(vec_t const &right) const {
 		return lo <= right && right <= hi;
 	}

@@ -287,15 +287,15 @@ public:
         return true;
     }
 	
-    // найти время через которое столкнутся два движущихся треугольника
-    // и точку столкновения
-    // tri1 -- данный треугольник
-    // vel0 -- скорость настоящего треугольника
-    // vel1 -- скорость треугольника tri1
-    // t -- время через которое треугольники столкнутся
-    // cp -- точка столкновения
-    // cn -- нормаль столкновения
-    // t_min, t_max -- минимальное и максимальное время расчета
+    // find the time when two moving triangles will collide
+    // and the collision point
+    // tri1 -- the given triangle
+    // vel0 -- velocity of this triangle
+    // vel1 -- velocity of triangle tri1
+    // t -- time when the triangles will collide
+    // cp -- collision point
+    // cn -- collision normal
+    // t_min, t_max -- minimum and maximum calculation time
     bool collide(const triangle_t &tri1,const vec_t &vel0,const vec_t &vel1,
         scalar_t &t,vec_t &cp,vec_t &cn,scalar_t t_min = 0, scalar t_max = 1) const
     {

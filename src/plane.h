@@ -23,10 +23,10 @@ public:
 		NEGATIVE,
 	};
 
-	// данные
+	// data
 	scalar_t A, B, C, D;
 
-	// конструкторы
+	// constructors
 	plane() {
 	}
 
@@ -72,18 +72,18 @@ public:
 		return -d / a_n;
 	}
 
-	// найти пересечение с лучом r
-	// r -- данный луч
-	// t -- параметр в уравнении прямой r = r.origin + r.direction * t;
+	// find intersection with ray r
+	// r -- the given ray
+	// t -- parameter in line equation r = r.origin + r.direction * t
 	bool trace(const ray_t &r,scalar_t &t,scalar_t t_min = 0, scalar_t t_max = 1) const {
 		t = trace(r);
 		return t >= t_min && t <= t_max;
 	}
 
-	// найти пересечение с лучом r
-	// r -- данный луч
-	// t -- параметр в уравнении прямой r = r.origin + r.direction * t;
-	// v -- точка пересечения
+	// find intersection with ray r
+	// r -- the given ray
+	// t -- parameter in line equation r = r.origin + r.direction * t
+	// v -- intersection point
 	bool trace(const ray_t &r,scalar_t &t,vec_t &v,scalar_t t_min = 0, scalar_t t_max = 1) const {
 		if(!trace(r,t,t_min,t_max)) return false;
 		v = r.r0 + r.a * t;

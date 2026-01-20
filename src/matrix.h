@@ -30,7 +30,7 @@ mul(matrix<M,K,T> &result,const matrix<M,N,T> &left,const matrix<N,K,T> &right);
 template<class T>
 class matrix<3,3,T> {
 public:
-	// типы и константы
+	// types and constants
 	static size_t const WIDTH=3,HEIGHT=3;
 	typedef T scalar_t;
 	typedef vec<WIDTH-1,scalar_t> point_t;
@@ -38,7 +38,7 @@ public:
 	typedef quaternion<scalar_t> quaternion_t;
 	typedef matrix<WIDTH,HEIGHT,scalar_t> matrix_t;
 
-	// данные
+	// data
     union {
 		struct {
 			float _11, _12, _13;
@@ -49,7 +49,7 @@ public:
 		scalar_t ij[WIDTH][HEIGHT];
 	};
 
-	// конструкторы
+	// constructors
 	void assign(vec_t const &l1, vec_t const &l2, vec_t const &l3);
 	void zero();
 	void identity();
@@ -77,9 +77,9 @@ public:
 	bool world_to_axes(vec_t const &tangent, vec_t const &normal, vec_t const &binormal);
 	bool axes_to_world(vec_t const &tangent, vec_t const &normal, vec_t const &binormal);
 
-	// вычислить детерминант минора
-	// r0, r1 -- индексы столбцов минора
-	// c0, c1 -- индексы строк минора
+	// compute minor determinant
+	// r0, r1 -- column indices of the minor
+	// c0, c1 -- row indices of the minor
 	scalar_t minor(int r0,int r1,int c0,int c1) const {
 		return ij[r0][c0] * ij[r1][c1] - ij[r1][c0] * ij[r0][c1];
 	}
@@ -106,8 +106,8 @@ public:
 		return ij[0][0] + ij[1][1] + ij[2][2];
 	}
 
-	// вычислить обратную матрицу и записать ее в M
-	// возвращает false если детерминант равен нулю
+	// compute inverse matrix and store in M
+	// returns false if determinant is zero
 	bool inverse(matrix_t &M) const {
 		scalar_t det = determinant();
 		if(det == 0) return false;
@@ -116,13 +116,13 @@ public:
 		return true;
 	}
 
-	// инвертирует матрицу
-	// возвращает false если детерминант равен нулю
+	// invert matrix in place
+	// returns false if determinant is zero
 	bool invert() {
 		return matrix_t(*this).inverse(*this);
 	}
 
-	// записать в T транспонированную матрицу
+	// store transposed matrix in tp
 	void transpose(matrix_t &tp) const {
         tp.ij[0][0] = ij[0][0];		tp.ij[0][1] = ij[1][0];		tp.ij[0][2] = ij[2][0];
 		tp.ij[1][0] = ij[0][1];		tp.ij[1][1] = ij[1][1];		tp.ij[1][2] = ij[2][1];
@@ -157,7 +157,7 @@ public:
 template<class T>
 class matrix<4,4,T> {
 public:
-	// типы и константы
+	// types and constants
 	static size_t const WIDTH=4,HEIGHT=4;
 	typedef T scalar_t;
 	typedef vec<WIDTH,scalar_t> vec_t;
@@ -165,7 +165,7 @@ public:
 	typedef quaternion<scalar_t> quaternion_t;
 	typedef matrix<WIDTH,HEIGHT,scalar_t> matrix_t;
 
-	// данные
+	// data
 	union {
 		struct {
 			scalar_t _11, _12, _13, _14;
@@ -177,7 +177,7 @@ public:
 		scalar_t ij[WIDTH][HEIGHT];
 	};
 
-	// конструкторы
+	// constructors
 	matrix() {
 	}
 
@@ -207,9 +207,9 @@ public:
 	void ortho(scalar_t width,scalar_t height,scalar_t z_near,scalar_t z_far);
 	void perspective(scalar_t fovy,scalar_t aspect,scalar_t z_near,scalar_t z_far);
 
-	// вычислить детерминант минора
-	// r0, r1, r2 -- индексы столбцов минора
-	// c0, c1, c2 -- индексы строк минора
+	// compute minor determinant
+	// r0, r1, r2 -- column indices of the minor
+	// c0, c1, c2 -- row indices of the minor
 	scalar_t minor(int r0,int r1,int r2,int c0,int c1,int c2) const {
 		return
 			ij[r0][c0] * (ij[r1][c1] * ij[r2][c2] - ij[r2][c1] * ij[r1][c2]) -
@@ -244,8 +244,8 @@ public:
 			ij[0][3] * minor(1, 2, 3, 0, 1, 2);
 	}
 
-	// вычислить обратную матрицу и записать ее в M
-	// возвращает false если детерминант равен нулю
+	// compute inverse matrix and store in M
+	// returns false if determinant is zero
 	bool inverse(matrix_t &M) const {
 		scalar_t det = determinant();
 		if(det == 0) return false;
@@ -254,13 +254,13 @@ public:
 		return true;
 	}
 
-	// инвертирует матрицу
-	// возвращает false если детерминант равен нулю
+	// invert matrix in place
+	// returns false if determinant is zero
 	bool invert() {
 		return matrix_t(*this).inverse(*this);
 	}
 
-	// записать в T транспонированную матрицу
+	// store transposed matrix in tp
 	void transpose(matrix_t &tp) const {
        	tp.ij[0][0] = ij[0][0];	tp.ij[0][1] = ij[1][0];	tp.ij[0][2] = ij[2][0]; tp.ij[0][3] = ij[3][0];
 		tp.ij[1][0] = ij[0][1];	tp.ij[1][1] = ij[1][1];	tp.ij[1][2] = ij[2][1]; tp.ij[1][3] = ij[3][1];
