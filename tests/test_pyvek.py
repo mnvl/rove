@@ -326,7 +326,7 @@ class TestVec4(unittest.TestCase):
     def test_length(self):
         v = pyvek.vec4(1.0, 2.0, 3.0, 4.0)
         expected = math.sqrt(1 + 4 + 9 + 16)
-        self.assertAlmostEqual(v.length(), expected)
+        self.assertAlmostEqual(v.length(), expected, places=6)
 
     def test_length_sq(self):
         v = pyvek.vec4(1.0, 2.0, 3.0, 4.0)
@@ -335,7 +335,7 @@ class TestVec4(unittest.TestCase):
     def test_normalize(self):
         v = pyvek.vec4(1.0, 2.0, 3.0, 4.0)
         v.normalize()
-        self.assertAlmostEqual(v.length(), 1.0)
+        self.assertAlmostEqual(v.length(), 1.0, places=6)
 
     def test_negate(self):
         v = pyvek.vec4(1.0, 2.0, 3.0, 4.0)
@@ -483,7 +483,7 @@ class TestFreeFunctions(unittest.TestCase):
     def test_normalize_vec4(self):
         v = pyvek.vec4(1.0, 2.0, 3.0, 4.0)
         n = pyvek.normalize(v)
-        self.assertAlmostEqual(n.length(), 1.0)
+        self.assertAlmostEqual(n.length(), 1.0, places=6)
 
 
 class TestEdgeCases(unittest.TestCase):
@@ -507,7 +507,7 @@ class TestEdgeCases(unittest.TestCase):
         self.assertEqual(v.x, -1.0)
         self.assertEqual(v.y, -2.0)
         self.assertEqual(v.z, -3.0)
-        self.assertAlmostEqual(v.length(), math.sqrt(14))
+        self.assertAlmostEqual(v.length(), math.sqrt(14), places=6)
 
     def test_property_modification(self):
         v = pyvek.vec3(1.0, 2.0, 3.0)

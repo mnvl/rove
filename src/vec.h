@@ -55,7 +55,7 @@ public:
 		scalar_t i[ARITY];
 	};
 
-	vec() {
+	vec(): x(0), y(0) {
 	}
 
 	vec(const vec &v):
@@ -268,7 +268,7 @@ public:
 		scalar_t i[ARITY];
 	};
 
-	vec()
+	vec(): x(0), y(0), z(0)
 	{
 	}
 
@@ -440,6 +440,7 @@ public:
 	{
 		x = -x;
 		y = -y;
+		z = -z;
 	}
 
 	void to_axis_angle(vec &axis, scalar_t &angle) const;
@@ -489,7 +490,7 @@ public:
 		scalar_t i[ARITY];
 	};
 
-	vec() {
+	vec(): x(0), y(0), z(0), w(0) {
 	}
 
 	vec(const vec &v):
