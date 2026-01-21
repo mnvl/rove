@@ -84,6 +84,7 @@ if(ROVE_BUILD_PYTHON)
         src/bind_vec.cc
         src/bind_matrix.cc
         src/bind_quaternion.cc
+	src/bind_sphere.cc
     )
 
     nanobind_add_module(pyrove ${PYROVE_SOURCES})
