@@ -231,7 +231,7 @@ using quat = quaternion<float>;
 
 ## License
 
-See LICENSE file for details.
+See LICENSE.md file for details.
 
 ## Contributing
 
