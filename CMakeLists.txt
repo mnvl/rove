@@ -78,7 +78,15 @@ if(ROVE_BUILD_PYTHON)
     )
     FetchContent_MakeAvailable(nanobind)
 
-    nanobind_add_module(pyrove src/python_bindings.cc)
+    # Python binding sources (organized by class)
+    set(PYROVE_SOURCES
+        src/python_bindings.cc
+        src/vec_bindings.cc
+        src/matrix_bindings.cc
+        src/quaternion_bindings.cc
+    )
+
+    nanobind_add_module(pyrove ${PYROVE_SOURCES})
     target_link_libraries(pyrove PRIVATE rove)
     target_include_directories(pyrove PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 endif()
