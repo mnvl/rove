@@ -547,5 +547,7 @@ matrix<4,4,T>::perspective(scalar_t fovy,scalar_t aspect,scalar_t z_near,scalar_
 
 template class matrix<3,3>;
 template class matrix<4,4>;
+template class matrix<3,3,double>;
+template class matrix<4,4,double>;
 
 }

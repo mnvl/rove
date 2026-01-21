@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "vec.h"
+#include "matrix.h"
 
 namespace nb = nanobind;
 
@@ -115,6 +116,211 @@ void bind_vec4(nb::module_ &m, const char *name) {
         .def("dot", [](const Vec &a, const Vec &b) { return vek::dot_product(a, b); });
 }
 
+template<typename T>
+void bind_matrix3(nb::module_ &m, const char *name) {
+    using Mat = vek::matrix<3, 3, T>;
+    using Vec3 = vek::vec<3, T>;
+    using Vec2 = vek::vec<2, T>;
+
+    nb::class_<Mat>(m, name)
+        .def(nb::init<>())
+        .def("identity", &Mat::identity, "Set to identity matrix")
+        .def("zero", &Mat::zero, "Set to zero matrix")
+        .def("translation", nb::overload_cast<T, T>(&Mat::translation),
+             nb::arg("x"), nb::arg("y"), "Set to translation matrix")
+        .def("translation", nb::overload_cast<const Vec2&>(&Mat::translation),
+             nb::arg("p"), "Set to translation matrix")
+        .def("translate", nb::overload_cast<T, T>(&Mat::translate),
+             nb::arg("x"), nb::arg("y"), "Apply translation")
+        .def("translate", nb::overload_cast<const Vec2&>(&Mat::translate),
+             nb::arg("p"), "Apply translation")
+        .def("scaling", nb::overload_cast<T, T>(&Mat::scaling),
+             nb::arg("x"), nb::arg("y"), "Set to scaling matrix")
+        .def("scaling", nb::overload_cast<const Vec2&>(&Mat::scaling),
+             nb::arg("p"), "Set to scaling matrix")
+        .def("scale", nb::overload_cast<T, T>(&Mat::scale),
+             nb::arg("x"), nb::arg("y"), "Apply scaling")
+        .def("scale", nb::overload_cast<const Vec2&>(&Mat::scale),
+             nb::arg("p"), "Apply scaling")
+        .def("rotation", nb::overload_cast<const Vec3&, T>(&Mat::rotation),
+             nb::arg("axis"), nb::arg("angle"), "Set to rotation matrix")
+        .def("rotate", nb::overload_cast<const Vec3&, T>(&Mat::rotate),
+             nb::arg("axis"), nb::arg("angle"), "Apply rotation")
+        .def("determinant", &Mat::determinant, "Compute determinant")
+        .def("trace", &Mat::trace, "Compute trace")
+        .def("invert", &Mat::invert, "Invert matrix in place")
+        .def("inverse", [](const Mat &m) {
+            Mat result;
+            if (!m.inverse(result)) {
+                throw std::runtime_error("Matrix is singular");
+            }
+            return result;
+        }, "Return inverse matrix")
+        .def("transpose", [](const Mat &m) {
+            Mat result;
+            m.transpose(result);
+            return result;
+        }, "Return transposed matrix")
+        .def("__imul__", nb::overload_cast<T>(&Mat::operator*=), nb::arg("k"))
+        .def("__imul__", nb::overload_cast<const Mat&>(&Mat::operator*=), nb::arg("m"))
+        .def("__itruediv__", &Mat::operator/=, nb::arg("k"))
+        .def("__mul__", [](const Mat &m, T k) {
+            Mat result = m;
+            result *= k;
+            return result;
+        })
+        .def("__mul__", [](const Mat &a, const Mat &b) {
+            Mat result;
+            vek::mul(result, a, b);
+            return result;
+        })
+        .def("__rmul__", [](const Mat &m, T k) {
+            Mat result = m;
+            result *= k;
+            return result;
+        })
+        .def("__truediv__", [](const Mat &m, T k) {
+            Mat result = m;
+            result /= k;
+            return result;
+        })
+        .def("__repr__", [](const Mat &m) {
+            std::ostringstream ss;
+            ss << "mat3([";
+            for (int i = 0; i < 3; i++) {
+                ss << "[";
+                for (int j = 0; j < 3; j++) {
+                    ss << m.ij[j][i];
+                    if (j < 2) ss << ", ";
+                }
+                ss << "]";
+                if (i < 2) ss << ", ";
+            }
+            ss << "])";
+            return ss.str();
+        })
+        .def("get", [](const Mat &m, int i, int j) {
+            if (i < 0 || i >= 3 || j < 0 || j >= 3) {
+                throw std::out_of_range("Matrix index out of range");
+            }
+            return m.ij[i][j];
+        }, nb::arg("i"), nb::arg("j"), "Get matrix element at [i][j]")
+        .def("set", [](Mat &m, int i, int j, T value) {
+            if (i < 0 || i >= 3 || j < 0 || j >= 3) {
+                throw std::out_of_range("Matrix index out of range");
+            }
+            m.ij[i][j] = value;
+        }, nb::arg("i"), nb::arg("j"), nb::arg("value"), "Set matrix element at [i][j]");
+}
+
+template<typename T>
+void bind_matrix4(nb::module_ &m, const char *name) {
+    using Mat = vek::matrix<4, 4, T>;
+    using Vec3 = vek::vec<3, T>;
+    using Vec4 = vek::vec<4, T>;
+
+    nb::class_<Mat>(m, name)
+        .def(nb::init<>())
+        .def("identity", &Mat::identity, "Set to identity matrix")
+        .def("zero", &Mat::zero, "Set to zero matrix")
+        .def("translation", nb::overload_cast<T, T, T>(&Mat::translation),
+             nb::arg("x"), nb::arg("y"), nb::arg("z"), "Set to translation matrix")
+        .def("translation", nb::overload_cast<const Vec3&>(&Mat::translation),
+             nb::arg("p"), "Set to translation matrix")
+        .def("translate", nb::overload_cast<T, T, T>(&Mat::translate),
+             nb::arg("x"), nb::arg("y"), nb::arg("z"), "Apply translation")
+        .def("translate", nb::overload_cast<const Vec3&>(&Mat::translate),
+             nb::arg("p"), "Apply translation")
+        .def("scaling", nb::overload_cast<T, T, T>(&Mat::scaling),
+             nb::arg("x"), nb::arg("y"), nb::arg("z"), "Set to scaling matrix")
+        .def("scaling", nb::overload_cast<const Vec3&>(&Mat::scaling),
+             nb::arg("p"), "Set to scaling matrix")
+        .def("scale", nb::overload_cast<T, T, T>(&Mat::scale),
+             nb::arg("x"), nb::arg("y"), nb::arg("z"), "Apply scaling")
+        .def("scale", nb::overload_cast<const Vec3&>(&Mat::scale),
+             nb::arg("p"), "Apply scaling")
+        .def("rotation", nb::overload_cast<const Vec3&, T>(&Mat::rotation),
+             nb::arg("axis"), nb::arg("angle"), "Set to rotation matrix")
+        .def("rotate", nb::overload_cast<const Vec3&, T>(&Mat::rotate),
+             nb::arg("axis"), nb::arg("angle"), "Apply rotation")
+        .def("lookat", &Mat::lookat,
+             nb::arg("eye"), nb::arg("at"), nb::arg("up"), "Set to lookat matrix")
+        .def("ortho", &Mat::ortho,
+             nb::arg("width"), nb::arg("height"), nb::arg("z_near"), nb::arg("z_far"),
+             "Set to orthographic projection matrix")
+        .def("perspective", &Mat::perspective,
+             nb::arg("fovy"), nb::arg("aspect"), nb::arg("z_near"), nb::arg("z_far"),
+             "Set to perspective projection matrix")
+        .def("determinant", &Mat::determinant, "Compute determinant")
+        .def("invert", &Mat::invert, "Invert matrix in place")
+        .def("inverse", [](const Mat &m) {
+            Mat result;
+            if (!m.inverse(result)) {
+                throw std::runtime_error("Matrix is singular");
+            }
+            return result;
+        }, "Return inverse matrix")
+        .def("transpose", [](const Mat &m) {
+            Mat result;
+            m.transpose(result);
+            return result;
+        }, "Return transposed matrix")
+        .def("transpose_inplace", &Mat::transpose_inplace, "Transpose matrix in place")
+        .def("column", &Mat::column, nb::arg("index"), "Get column as vec4")
+        .def("projected_column", &Mat::projected_column, nb::arg("index"), "Get column as vec3")
+        .def("projected_row", &Mat::projected_row, nb::arg("index"), "Get row as vec3")
+        .def("__imul__", nb::overload_cast<T>(&Mat::operator*=), nb::arg("k"))
+        .def("__imul__", nb::overload_cast<const Mat&>(&Mat::operator*=), nb::arg("m"))
+        .def("__itruediv__", &Mat::operator/=, nb::arg("k"))
+        .def("__mul__", [](const Mat &m, T k) {
+            Mat result = m;
+            result *= k;
+            return result;
+        })
+        .def("__mul__", [](const Mat &a, const Mat &b) {
+            Mat result;
+            vek::mul(result, a, b);
+            return result;
+        })
+        .def("__rmul__", [](const Mat &m, T k) {
+            Mat result = m;
+            result *= k;
+            return result;
+        })
+        .def("__truediv__", [](const Mat &m, T k) {
+            Mat result = m;
+            result /= k;
+            return result;
+        })
+        .def("__repr__", [](const Mat &m) {
+            std::ostringstream ss;
+            ss << "mat4([";
+            for (int i = 0; i < 4; i++) {
+                ss << "[";
+                for (int j = 0; j < 4; j++) {
+                    ss << m.ij[j][i];
+                    if (j < 3) ss << ", ";
+                }
+                ss << "]";
+                if (i < 3) ss << ", ";
+            }
+            ss << "])";
+            return ss.str();
+        })
+        .def("get", [](const Mat &m, int i, int j) {
+            if (i < 0 || i >= 4 || j < 0 || j >= 4) {
+                throw std::out_of_range("Matrix index out of range");
+            }
+            return m.ij[i][j];
+        }, nb::arg("i"), nb::arg("j"), "Get matrix element at [i][j]")
+        .def("set", [](Mat &m, int i, int j, T value) {
+            if (i < 0 || i >= 4 || j < 0 || j >= 4) {
+                throw std::out_of_range("Matrix index out of range");
+            }
+            m.ij[i][j] = value;
+        }, nb::arg("i"), nb::arg("j"), nb::arg("value"), "Set matrix element at [i][j]");
+}
+
 NB_MODULE(pyvek, m) {
     m.doc() = "Python bindings for vek vector math library";
 
@@ -127,6 +333,14 @@ NB_MODULE(pyvek, m) {
     bind_vec2<double>(m, "dvec2");
     bind_vec3<double>(m, "dvec3");
     bind_vec4<double>(m, "dvec4");
+
+    // Bind matrix float versions (default)
+    bind_matrix3<float>(m, "mat3");
+    bind_matrix4<float>(m, "mat4");
+
+    // Bind matrix double versions
+    bind_matrix3<double>(m, "dmat3");
+    bind_matrix4<double>(m, "dmat4");
 
     // Free functions
     m.def("dot", [](const vek::vec<2, float> &a, const vek::vec<2, float> &b) {

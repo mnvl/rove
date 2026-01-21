@@ -519,5 +519,457 @@ class TestEdgeCases(unittest.TestCase):
         self.assertEqual(v.z, 30.0)
 
 
+class TestMat3(unittest.TestCase):
+    def test_default_constructor(self):
+        m = pyvek.mat3()
+        # Default constructor doesn't initialize, so we just check it was created
+        self.assertIsNotNone(m)
+
+    def test_identity(self):
+        m = pyvek.mat3()
+        m.identity()
+        self.assertAlmostEqual(m.get(0, 0), 1.0)
+        self.assertAlmostEqual(m.get(1, 1), 1.0)
+        self.assertAlmostEqual(m.get(2, 2), 1.0)
+        self.assertAlmostEqual(m.get(0, 1), 0.0)
+        self.assertAlmostEqual(m.get(0, 2), 0.0)
+        self.assertAlmostEqual(m.get(1, 0), 0.0)
+        self.assertAlmostEqual(m.get(1, 2), 0.0)
+        self.assertAlmostEqual(m.get(2, 0), 0.0)
+        self.assertAlmostEqual(m.get(2, 1), 0.0)
+
+    def test_zero(self):
+        m = pyvek.mat3()
+        m.zero()
+        for i in range(3):
+            for j in range(3):
+                self.assertAlmostEqual(m.get(i, j), 0.0)
+
+    def test_determinant(self):
+        m = pyvek.mat3()
+        m.identity()
+        self.assertAlmostEqual(m.determinant(), 1.0)
+
+    def test_trace(self):
+        m = pyvek.mat3()
+        m.identity()
+        self.assertAlmostEqual(m.trace(), 3.0)
+
+    def test_translation_scalar(self):
+        m = pyvek.mat3()
+        m.translation(2.0, 3.0)
+        self.assertAlmostEqual(m.get(2, 0), 2.0)
+        self.assertAlmostEqual(m.get(2, 1), 3.0)
+        self.assertAlmostEqual(m.get(2, 2), 1.0)
+
+    def test_translation_vec(self):
+        m = pyvek.mat3()
+        v = pyvek.vec2(4.0, 5.0)
+        m.translation(v)
+        self.assertAlmostEqual(m.get(2, 0), 4.0)
+        self.assertAlmostEqual(m.get(2, 1), 5.0)
+
+    def test_scaling_scalar(self):
+        m = pyvek.mat3()
+        m.scaling(2.0, 3.0)
+        self.assertAlmostEqual(m.get(0, 0), 2.0)
+        self.assertAlmostEqual(m.get(1, 1), 3.0)
+        self.assertAlmostEqual(m.get(2, 2), 1.0)
+
+    def test_scaling_vec(self):
+        m = pyvek.mat3()
+        v = pyvek.vec2(2.5, 3.5)
+        m.scaling(v)
+        self.assertAlmostEqual(m.get(0, 0), 2.5)
+        self.assertAlmostEqual(m.get(1, 1), 3.5)
+
+    def test_rotation(self):
+        m = pyvek.mat3()
+        m.rotation(pyvek.vec3(0, 0, 1), math.pi / 2)  # 90 degrees around Z
+        # Matrix is column-major, so get(col, row)
+        # Rotation matrix around Z by 90 degrees counter-clockwise:
+        # Row 0: [0, -1, 0]  => get(0,0)=0, get(1,0)=-1, get(2,0)=0
+        # Row 1: [1,  0, 0]  => get(0,1)=1, get(1,1)=0,  get(2,1)=0
+        # Row 2: [0,  0, 1]  => get(0,2)=0, get(1,2)=0,  get(2,2)=1
+        self.assertAlmostEqual(m.get(0, 0), 0.0, places=5)
+        self.assertAlmostEqual(m.get(1, 0), -1.0, places=5)
+        self.assertAlmostEqual(m.get(0, 1), 1.0, places=5)
+        self.assertAlmostEqual(m.get(1, 1), 0.0, places=5)
+
+    def test_transpose(self):
+        m = pyvek.mat3()
+        m.identity()
+        m.set(0, 1, 2.0)
+        m.set(1, 0, 3.0)
+
+        mt = m.transpose()
+        self.assertAlmostEqual(mt.get(0, 1), 3.0)
+        self.assertAlmostEqual(mt.get(1, 0), 2.0)
+
+    def test_inverse(self):
+        m = pyvek.mat3()
+        m.identity()
+        m.scaling(2.0, 3.0)
+
+        mi = m.inverse()
+        self.assertAlmostEqual(mi.get(0, 0), 0.5)
+        self.assertAlmostEqual(mi.get(1, 1), 1.0/3.0, places=5)
+
+    def test_scalar_multiplication(self):
+        m = pyvek.mat3()
+        m.identity()
+        m2 = m * 2.0
+        self.assertAlmostEqual(m2.get(0, 0), 2.0)
+        self.assertAlmostEqual(m2.get(1, 1), 2.0)
+
+    def test_scalar_rmul(self):
+        m = pyvek.mat3()
+        m.identity()
+        m2 = 3.0 * m
+        self.assertAlmostEqual(m2.get(0, 0), 3.0)
+        self.assertAlmostEqual(m2.get(1, 1), 3.0)
+
+    def test_scalar_division(self):
+        m = pyvek.mat3()
+        m.identity()
+        m.set(0, 0, 4.0)
+        m2 = m / 2.0
+        self.assertAlmostEqual(m2.get(0, 0), 2.0)
+
+    def test_matrix_multiplication(self):
+        m1 = pyvek.mat3()
+        m1.identity()
+        m1.scaling(2.0, 2.0)
+
+        m2 = pyvek.mat3()
+        m2.identity()
+        m2.translation(1.0, 1.0)
+
+        m3 = m1 * m2
+        # Scale * Translation should keep translation at 1,1
+        # (scaling doesn't affect translation in this order)
+        self.assertAlmostEqual(m3.get(2, 0), 1.0)
+        self.assertAlmostEqual(m3.get(2, 1), 1.0)
+
+    def test_get_set(self):
+        m = pyvek.mat3()
+        m.zero()
+        m.set(1, 2, 42.0)
+        self.assertAlmostEqual(m.get(1, 2), 42.0)
+
+    def test_get_out_of_range(self):
+        m = pyvek.mat3()
+        m.identity()
+        with self.assertRaises(Exception):
+            m.get(3, 0)
+        with self.assertRaises(Exception):
+            m.get(0, 3)
+
+    def test_repr(self):
+        m = pyvek.mat3()
+        m.identity()
+        s = repr(m)
+        self.assertIn("mat3", s)
+
+
+class TestMat4(unittest.TestCase):
+    def test_default_constructor(self):
+        m = pyvek.mat4()
+        self.assertIsNotNone(m)
+
+    def test_identity(self):
+        m = pyvek.mat4()
+        m.identity()
+        for i in range(4):
+            for j in range(4):
+                if i == j:
+                    self.assertAlmostEqual(m.get(i, j), 1.0)
+                else:
+                    self.assertAlmostEqual(m.get(i, j), 0.0)
+
+    def test_zero(self):
+        m = pyvek.mat4()
+        m.zero()
+        for i in range(4):
+            for j in range(4):
+                self.assertAlmostEqual(m.get(i, j), 0.0)
+
+    def test_determinant(self):
+        m = pyvek.mat4()
+        m.identity()
+        self.assertAlmostEqual(m.determinant(), 1.0)
+
+    def test_translation_scalar(self):
+        m = pyvek.mat4()
+        m.translation(1.0, 2.0, 3.0)
+        self.assertAlmostEqual(m.get(3, 0), 1.0)
+        self.assertAlmostEqual(m.get(3, 1), 2.0)
+        self.assertAlmostEqual(m.get(3, 2), 3.0)
+
+    def test_translation_vec(self):
+        m = pyvek.mat4()
+        v = pyvek.vec3(4.0, 5.0, 6.0)
+        m.translation(v)
+        self.assertAlmostEqual(m.get(3, 0), 4.0)
+        self.assertAlmostEqual(m.get(3, 1), 5.0)
+        self.assertAlmostEqual(m.get(3, 2), 6.0)
+
+    def test_scaling_scalar(self):
+        m = pyvek.mat4()
+        m.scaling(2.0, 3.0, 4.0)
+        self.assertAlmostEqual(m.get(0, 0), 2.0)
+        self.assertAlmostEqual(m.get(1, 1), 3.0)
+        self.assertAlmostEqual(m.get(2, 2), 4.0)
+
+    def test_scaling_vec(self):
+        m = pyvek.mat4()
+        v = pyvek.vec3(2.5, 3.5, 4.5)
+        m.scaling(v)
+        self.assertAlmostEqual(m.get(0, 0), 2.5)
+        self.assertAlmostEqual(m.get(1, 1), 3.5)
+        self.assertAlmostEqual(m.get(2, 2), 4.5)
+
+    def test_rotation(self):
+        m = pyvek.mat4()
+        m.rotation(pyvek.vec3(0, 0, 1), math.pi / 2)  # 90 degrees around Z
+        # Matrix is column-major, so get(col, row)
+        self.assertAlmostEqual(m.get(0, 0), 0.0, places=5)
+        self.assertAlmostEqual(m.get(1, 0), -1.0, places=5)
+        self.assertAlmostEqual(m.get(0, 1), 1.0, places=5)
+        self.assertAlmostEqual(m.get(1, 1), 0.0, places=5)
+
+    def test_lookat(self):
+        m = pyvek.mat4()
+        eye = pyvek.vec3(0, 0, 5)
+        at = pyvek.vec3(0, 0, 0)
+        up = pyvek.vec3(0, 1, 0)
+        m.lookat(eye, at, up)
+        # Just verify it doesn't crash and produces a matrix
+        self.assertIsNotNone(m)
+        # The z-axis (column 2) should point from eye to at (forward = negative Z in this case)
+        self.assertAlmostEqual(abs(m.get(2, 2)), 1.0, places=5)
+
+    def test_perspective(self):
+        m = pyvek.mat4()
+        m.perspective(math.pi / 4, 16.0/9.0, 0.1, 100.0)
+        # Check that perspective matrix was created
+        # The matrix should have non-zero values in specific positions
+        self.assertNotAlmostEqual(m.get(0, 0), 0.0)
+        self.assertNotAlmostEqual(m.get(1, 1), 0.0)
+        self.assertNotAlmostEqual(m.get(2, 2), 0.0)
+
+    def test_ortho(self):
+        m = pyvek.mat4()
+        m.ortho(800, 600, 0.1, 100.0)
+        # Check that ortho matrix was created
+        self.assertAlmostEqual(m.get(0, 0), 2.0/800.0, places=5)
+        self.assertAlmostEqual(m.get(1, 1), 2.0/600.0, places=5)
+
+    def test_transpose(self):
+        m = pyvek.mat4()
+        m.identity()
+        m.set(0, 1, 2.0)
+        m.set(1, 0, 3.0)
+
+        mt = m.transpose()
+        self.assertAlmostEqual(mt.get(0, 1), 3.0)
+        self.assertAlmostEqual(mt.get(1, 0), 2.0)
+
+    def test_inverse(self):
+        m = pyvek.mat4()
+        m.identity()
+        m.scaling(2.0, 3.0, 4.0)
+
+        mi = m.inverse()
+        self.assertAlmostEqual(mi.get(0, 0), 0.5)
+        self.assertAlmostEqual(mi.get(1, 1), 1.0/3.0, places=5)
+        self.assertAlmostEqual(mi.get(2, 2), 0.25)
+
+    def test_scalar_multiplication(self):
+        m = pyvek.mat4()
+        m.identity()
+        m2 = m * 2.0
+        for i in range(4):
+            self.assertAlmostEqual(m2.get(i, i), 2.0)
+
+    def test_scalar_rmul(self):
+        m = pyvek.mat4()
+        m.identity()
+        m2 = 3.0 * m
+        for i in range(4):
+            self.assertAlmostEqual(m2.get(i, i), 3.0)
+
+    def test_scalar_division(self):
+        m = pyvek.mat4()
+        m.identity()
+        m.set(0, 0, 4.0)
+        m2 = m / 2.0
+        self.assertAlmostEqual(m2.get(0, 0), 2.0)
+
+    def test_matrix_multiplication(self):
+        m1 = pyvek.mat4()
+        m1.identity()
+        m1.translation(1.0, 0.0, 0.0)
+
+        m2 = pyvek.mat4()
+        m2.identity()
+        m2.scaling(2.0, 2.0, 2.0)
+
+        m3 = m1 * m2
+        # Translation should be scaled
+        self.assertAlmostEqual(m3.get(3, 0), 2.0)
+
+    def test_column(self):
+        m = pyvek.mat4()
+        m.identity()
+        m.set(0, 0, 1.0)
+        m.set(0, 1, 2.0)
+        m.set(0, 2, 3.0)
+        m.set(0, 3, 4.0)
+
+        col = m.column(0)
+        self.assertAlmostEqual(col.x, 1.0)
+        self.assertAlmostEqual(col.y, 2.0)
+        self.assertAlmostEqual(col.z, 3.0)
+        self.assertAlmostEqual(col.w, 4.0)
+
+    def test_projected_column(self):
+        m = pyvek.mat4()
+        m.identity()
+        m.set(0, 0, 1.0)
+        m.set(0, 1, 2.0)
+        m.set(0, 2, 3.0)
+
+        col = m.projected_column(0)
+        self.assertAlmostEqual(col.x, 1.0)
+        self.assertAlmostEqual(col.y, 2.0)
+        self.assertAlmostEqual(col.z, 3.0)
+
+    def test_projected_row(self):
+        m = pyvek.mat4()
+        m.identity()
+        m.set(0, 0, 1.0)
+        m.set(1, 0, 2.0)
+        m.set(2, 0, 3.0)
+
+        row = m.projected_row(0)
+        self.assertAlmostEqual(row.x, 1.0)
+        self.assertAlmostEqual(row.y, 2.0)
+        self.assertAlmostEqual(row.z, 3.0)
+
+    def test_get_set(self):
+        m = pyvek.mat4()
+        m.zero()
+        m.set(2, 3, 42.0)
+        self.assertAlmostEqual(m.get(2, 3), 42.0)
+
+    def test_get_out_of_range(self):
+        m = pyvek.mat4()
+        m.identity()
+        with self.assertRaises(Exception):
+            m.get(4, 0)
+        with self.assertRaises(Exception):
+            m.get(0, 4)
+
+    def test_repr(self):
+        m = pyvek.mat4()
+        m.identity()
+        s = repr(m)
+        self.assertIn("mat4", s)
+
+
+class TestDoubleMat(unittest.TestCase):
+    def test_dmat3_identity(self):
+        m = pyvek.dmat3()
+        m.identity()
+        self.assertAlmostEqual(m.determinant(), 1.0)
+        self.assertAlmostEqual(m.trace(), 3.0)
+
+    def test_dmat3_scaling(self):
+        m = pyvek.dmat3()
+        m.scaling(1.5, 2.5)
+        self.assertAlmostEqual(m.get(0, 0), 1.5)
+        self.assertAlmostEqual(m.get(1, 1), 2.5)
+
+    def test_dmat3_translation(self):
+        m = pyvek.dmat3()
+        v = pyvek.dvec2(3.5, 4.5)
+        m.translation(v)
+        self.assertAlmostEqual(m.get(2, 0), 3.5)
+        self.assertAlmostEqual(m.get(2, 1), 4.5)
+
+    def test_dmat4_identity(self):
+        m = pyvek.dmat4()
+        m.identity()
+        self.assertAlmostEqual(m.determinant(), 1.0)
+        for i in range(4):
+            self.assertAlmostEqual(m.get(i, i), 1.0)
+
+    def test_dmat4_translation(self):
+        m = pyvek.dmat4()
+        v = pyvek.dvec3(1.5, 2.5, 3.5)
+        m.translation(v)
+        self.assertAlmostEqual(m.get(3, 0), 1.5)
+        self.assertAlmostEqual(m.get(3, 1), 2.5)
+        self.assertAlmostEqual(m.get(3, 2), 3.5)
+
+    def test_dmat4_scaling(self):
+        m = pyvek.dmat4()
+        m.scaling(2.0, 3.0, 4.0)
+        self.assertAlmostEqual(m.get(0, 0), 2.0)
+        self.assertAlmostEqual(m.get(1, 1), 3.0)
+        self.assertAlmostEqual(m.get(2, 2), 4.0)
+
+    def test_dmat4_perspective(self):
+        m = pyvek.dmat4()
+        m.perspective(math.pi / 4, 16.0/9.0, 0.1, 100.0)
+        # Just verify it creates a valid matrix
+        self.assertNotAlmostEqual(m.get(0, 0), 0.0)
+
+
+class TestMatrixEdgeCases(unittest.TestCase):
+    def test_singular_matrix_inverse(self):
+        m = pyvek.mat4()
+        m.zero()  # Singular matrix (determinant = 0)
+        with self.assertRaises(Exception):
+            m.inverse()
+
+    def test_identity_multiply_identity(self):
+        m1 = pyvek.mat4()
+        m1.identity()
+        m2 = pyvek.mat4()
+        m2.identity()
+        m3 = m1 * m2
+        for i in range(4):
+            for j in range(4):
+                if i == j:
+                    self.assertAlmostEqual(m3.get(i, j), 1.0)
+                else:
+                    self.assertAlmostEqual(m3.get(i, j), 0.0)
+
+    def test_translate_then_scale(self):
+        m = pyvek.mat4()
+        m.identity()
+        m.translate(1.0, 2.0, 3.0)
+        m.scale(2.0, 2.0, 2.0)
+        # After translate then scale, translation should be doubled
+        self.assertAlmostEqual(m.get(3, 0), 2.0)
+        self.assertAlmostEqual(m.get(3, 1), 4.0)
+        self.assertAlmostEqual(m.get(3, 2), 6.0)
+
+    def test_inverse_of_inverse(self):
+        m = pyvek.mat4()
+        m.identity()
+        m.scaling(2.0, 3.0, 4.0)
+
+        mi = m.inverse()
+        mii = mi.inverse()
+
+        # Inverse of inverse should be close to original
+        self.assertAlmostEqual(mii.get(0, 0), 2.0, places=5)
+        self.assertAlmostEqual(mii.get(1, 1), 3.0, places=5)
+        self.assertAlmostEqual(mii.get(2, 2), 4.0, places=5)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
