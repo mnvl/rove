@@ -277,21 +277,21 @@ class TestQuaternionMatrix(unittest.TestCase):
 
 
 class TestDoubleQuaternion(unittest.TestCase):
-    def test_dquat_basic(self):
-        q = pyrove.dquat(1.0, 2.0, 3.0, 4.0)
+    def test_quatd_basic(self):
+        q = pyrove.quatd(1.0, 2.0, 3.0, 4.0)
         self.assertEqual(q.x, 1.0)
         self.assertEqual(q.y, 2.0)
         self.assertEqual(q.z, 3.0)
         self.assertEqual(q.w, 4.0)
 
-    def test_dquat_norm(self):
-        q = pyrove.dquat(3.0, 4.0, 0.0, 0.0)
+    def test_quatd_norm(self):
+        q = pyrove.quatd(3.0, 4.0, 0.0, 0.0)
         self.assertAlmostEqual(q.norm(), 5.0)
 
-    def test_dquat_slerp(self):
-        slerper = pyrove.dquat_slerper()
-        q1 = pyrove.dquat(0, 0, 0, 1)
-        q2 = pyrove.dquat(0, 0, 1, 0)
+    def test_quatd_slerp(self):
+        slerper = pyrove.quat_slerperd()
+        q1 = pyrove.quatd(0, 0, 0, 1)
+        q2 = pyrove.quatd(0, 0, 1, 0)
         slerper.setup(q1, q2)
         q_mid = slerper.interpolate(0.5)
         self.assertAlmostEqual(q_mid.norm(), 1.0, places=5)

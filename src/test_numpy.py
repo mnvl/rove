@@ -184,34 +184,34 @@ class TestNumpyConversions(unittest.TestCase):
         self.assertAlmostEqual(q1.z, q2.z, places=6)
         self.assertAlmostEqual(q1.w, q2.w, places=6)
 
-    def test_dvec2_from_numpy(self):
+    def test_vec2d_from_numpy(self):
         arr = np.array([1.0, 2.0], dtype=np.float64)
-        v = pyrove.dvec2.from_numpy(arr)
+        v = pyrove.vec2d.from_numpy(arr)
         self.assertEqual(v.x, 1.0)
         self.assertEqual(v.y, 2.0)
 
-    def test_dvec3_from_numpy(self):
+    def test_vec3d_from_numpy(self):
         arr = np.array([1.0, 2.0, 3.0], dtype=np.float64)
-        v = pyrove.dvec3.from_numpy(arr)
+        v = pyrove.vec3d.from_numpy(arr)
         self.assertEqual(v.x, 1.0)
         self.assertEqual(v.y, 2.0)
         self.assertEqual(v.z, 3.0)
 
-    def test_dmat3_from_numpy(self):
+    def test_mat3d_from_numpy(self):
         arr = np.eye(3, dtype=np.float64)
-        m = pyrove.dmat3.from_numpy(arr)
+        m = pyrove.mat3d.from_numpy(arr)
         arr2 = m.to_numpy()
         np.testing.assert_array_almost_equal(arr, arr2)
 
-    def test_dmat4_from_numpy(self):
+    def test_mat4d_from_numpy(self):
         arr = np.eye(4, dtype=np.float64)
-        m = pyrove.dmat4.from_numpy(arr)
+        m = pyrove.mat4d.from_numpy(arr)
         arr2 = m.to_numpy()
         np.testing.assert_array_almost_equal(arr, arr2)
 
-    def test_dquat_from_numpy(self):
+    def test_quatd_from_numpy(self):
         arr = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float64)
-        q = pyrove.dquat.from_numpy(arr)
+        q = pyrove.quatd.from_numpy(arr)
         self.assertEqual(q.x, 0.0)
         self.assertEqual(q.y, 0.0)
         self.assertEqual(q.z, 0.0)

@@ -416,30 +416,30 @@ class TestVec4(unittest.TestCase):
 
 
 class TestDoubleVec(unittest.TestCase):
-    def test_dvec2(self):
-        v = pyrove.dvec2(1.0, 2.0)
+    def test_vec2d(self):
+        v = pyrove.vec2d(1.0, 2.0)
         self.assertEqual(v.x, 1.0)
         self.assertEqual(v.y, 2.0)
         self.assertAlmostEqual(v.length(), math.sqrt(5))
 
-    def test_dvec3(self):
-        v = pyrove.dvec3(1.0, 2.0, 3.0)
+    def test_vec3d(self):
+        v = pyrove.vec3d(1.0, 2.0, 3.0)
         self.assertEqual(v.x, 1.0)
         self.assertEqual(v.y, 2.0)
         self.assertEqual(v.z, 3.0)
         self.assertAlmostEqual(v.length(), math.sqrt(14))
 
-    def test_dvec4(self):
-        v = pyrove.dvec4(1.0, 2.0, 3.0, 4.0)
+    def test_vec4d(self):
+        v = pyrove.vec4d(1.0, 2.0, 3.0, 4.0)
         self.assertEqual(v.x, 1.0)
         self.assertEqual(v.y, 2.0)
         self.assertEqual(v.z, 3.0)
         self.assertEqual(v.w, 4.0)
         self.assertAlmostEqual(v.length(), math.sqrt(30))
 
-    def test_dvec3_cross(self):
-        a = pyrove.dvec3(1.0, 0.0, 0.0)
-        b = pyrove.dvec3(0.0, 1.0, 0.0)
+    def test_vec3d_cross(self):
+        a = pyrove.vec3d(1.0, 0.0, 0.0)
+        b = pyrove.vec3d(0.0, 1.0, 0.0)
         c = a.cross(b)
         self.assertAlmostEqual(c.z, 1.0)
 

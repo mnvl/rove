@@ -372,49 +372,49 @@ class TestMat4(unittest.TestCase):
 
 
 class TestDoubleMat(unittest.TestCase):
-    def test_dmat3_identity(self):
-        m = pyrove.dmat3()
+    def test_mat3d_identity(self):
+        m = pyrove.mat3d()
         m.identity()
         self.assertAlmostEqual(m.determinant(), 1.0)
         self.assertAlmostEqual(m.trace(), 3.0)
 
-    def test_dmat3_scaling(self):
-        m = pyrove.dmat3()
+    def test_mat3d_scaling(self):
+        m = pyrove.mat3d()
         m.scaling(1.5, 2.5)
         self.assertAlmostEqual(m.get(0, 0), 1.5)
         self.assertAlmostEqual(m.get(1, 1), 2.5)
 
-    def test_dmat3_translation(self):
-        m = pyrove.dmat3()
-        v = pyrove.dvec2(3.5, 4.5)
+    def test_mat3d_translation(self):
+        m = pyrove.mat3d()
+        v = pyrove.vec2d(3.5, 4.5)
         m.translation(v)
         self.assertAlmostEqual(m.get(2, 0), 3.5)
         self.assertAlmostEqual(m.get(2, 1), 4.5)
 
-    def test_dmat4_identity(self):
-        m = pyrove.dmat4()
+    def test_mat4d_identity(self):
+        m = pyrove.mat4d()
         m.identity()
         self.assertAlmostEqual(m.determinant(), 1.0)
         for i in range(4):
             self.assertAlmostEqual(m.get(i, i), 1.0)
 
-    def test_dmat4_translation(self):
-        m = pyrove.dmat4()
-        v = pyrove.dvec3(1.5, 2.5, 3.5)
+    def test_mat4d_translation(self):
+        m = pyrove.mat4d()
+        v = pyrove.vec3d(1.5, 2.5, 3.5)
         m.translation(v)
         self.assertAlmostEqual(m.get(3, 0), 1.5)
         self.assertAlmostEqual(m.get(3, 1), 2.5)
         self.assertAlmostEqual(m.get(3, 2), 3.5)
 
-    def test_dmat4_scaling(self):
-        m = pyrove.dmat4()
+    def test_mat4d_scaling(self):
+        m = pyrove.mat4d()
         m.scaling(2.0, 3.0, 4.0)
         self.assertAlmostEqual(m.get(0, 0), 2.0)
         self.assertAlmostEqual(m.get(1, 1), 3.0)
         self.assertAlmostEqual(m.get(2, 2), 4.0)
 
-    def test_dmat4_perspective(self):
-        m = pyrove.dmat4()
+    def test_mat4d_perspective(self):
+        m = pyrove.mat4d()
         m.perspective(math.pi / 4, 16.0/9.0, 0.1, 100.0)
         # Just verify it creates a valid matrix
         self.assertNotAlmostEqual(m.get(0, 0), 0.0)
