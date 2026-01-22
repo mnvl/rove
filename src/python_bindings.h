@@ -141,3 +141,84 @@ void bind_obb2(nb::module_ &m, const char *name);
  */
 template<typename T>
 void bind_obb3(nb::module_ &m, const char *name);
+
+/**
+ * @brief Bind ray<2> class to Python module
+ * @tparam T Scalar type (float or double)
+ * @param m Python module to bind to
+ * @param name Python class name
+ */
+template<typename T>
+void bind_ray2(nb::module_ &m, const char *name);
+
+/**
+ * @brief Bind ray<3> class to Python module
+ * @tparam T Scalar type (float or double)
+ * @param m Python module to bind to
+ * @param name Python class name
+ */
+template<typename T>
+void bind_ray3(nb::module_ &m, const char *name);
+
+/**
+ * @brief Bind line<2> class to Python module
+ * @tparam T Scalar type (float or double)
+ * @param m Python module to bind to
+ * @param name Python class name
+ */
+template<typename T>
+void bind_line2(nb::module_ &m, const char *name);
+
+/**
+ * @brief Bind line<3> class to Python module
+ * @tparam T Scalar type (float or double)
+ * @param m Python module to bind to
+ * @param name Python class name
+ */
+template<typename T>
+void bind_line3(nb::module_ &m, const char *name);
+
+/**
+ * @brief Bind plane class to Python module
+ * @tparam T Scalar type (float or double)
+ * @param m Python module to bind to
+ * @param name Python class name
+ */
+template<typename T>
+void bind_plane(nb::module_ &m, const char *name);
+
+/**
+ * @brief Bind triangle<3> class to Python module
+ * @tparam T Scalar type (float or double)
+ * @param m Python module to bind to
+ * @param name Python class name
+ */
+template<typename T>
+void bind_triangle3(nb::module_ &m, const char *name);
+
+/**
+ * @brief Bind capsule<2> class to Python module
+ * @tparam T Scalar type (float or double)
+ * @param m Python module to bind to
+ * @param name Python class name
+ */
+template<typename T>
+void bind_capsule2(nb::module_ &m, const char *name);
+
+/**
+ * @brief Bind capsule<3> class to Python module
+ * @tparam T Scalar type (float or double)
+ * @param m Python module to bind to
+ * @param name Python class name
+ */
+template<typename T>
+void bind_capsule3(nb::module_ &m, const char *name);
+
+/**
+ * @brief Bind frustum class to Python module
+ * @tparam T Scalar type (float or double)
+ * @param m Python module to bind to
+ * @param name Python class name
+ */
+template<typename T>
+void bind_frustum(nb::module_ &m, const char *name);

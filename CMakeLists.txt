@@ -87,6 +87,12 @@ if(ROVE_BUILD_PYTHON)
         src/bind_sphere.cc
         src/bind_aabb.cc
         src/bind_obb.cc
+        src/bind_ray.cc
+        src/bind_line.cc
+        src/bind_plane.cc
+        src/bind_triangle.cc
+        src/bind_capsule.cc
+        src/bind_frustum.cc
     )
 
     nanobind_add_module(pyrove ${PYROVE_SOURCES})

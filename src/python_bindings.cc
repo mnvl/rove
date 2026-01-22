@@ -77,4 +77,46 @@ NB_MODULE(pyrove, m) {
     // Bind OBB classes (double versions)
     bind_obb2<double>(m, "obb2d");
     bind_obb3<double>(m, "obb3d");
+
+    // Bind ray classes (float versions)
+    bind_ray2<float>(m, "ray2");
+    bind_ray3<float>(m, "ray3");
+
+    // Bind ray classes (double versions)
+    bind_ray2<double>(m, "ray2d");
+    bind_ray3<double>(m, "ray3d");
+
+    // Bind line classes (float versions)
+    bind_line2<float>(m, "line2");
+    bind_line3<float>(m, "line3");
+
+    // Bind line classes (double versions)
+    bind_line2<double>(m, "line2d");
+    bind_line3<double>(m, "line3d");
+
+    // Bind plane class (float version)
+    bind_plane<float>(m, "plane");
+
+    // Bind plane class (double version)
+    bind_plane<double>(m, "planed");
+
+    // Bind triangle class (float version)
+    bind_triangle3<float>(m, "triangle3");
+
+    // Bind triangle class (double version)
+    bind_triangle3<double>(m, "triangle3d");
+
+    // Bind capsule classes (float versions)
+    bind_capsule2<float>(m, "capsule2");
+    bind_capsule3<float>(m, "capsule3");
+
+    // Bind capsule classes (double versions)
+    bind_capsule2<double>(m, "capsule2d");
+    bind_capsule3<double>(m, "capsule3d");
+
+    // Bind frustum class (float version)
+    bind_frustum<float>(m, "frustum");
+
+    // Bind frustum class (double version)
+    bind_frustum<double>(m, "frustumd");
 }
