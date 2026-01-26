@@ -47,6 +47,8 @@ Most of the code was taken from old (15 years+!) pet project https://github.com/
 
 ### Building
 
+#### Quick Build (Development)
+
 ```bash
 # Clone the repository
 git clone https://github.com/mnvl/rove.git
@@ -56,30 +58,76 @@ cd rove
 mkdir build
 cd build
 
-# Configure with CMake
-cmake ..
+# Configure with CMake (defaults to Release build)
+cmake -DROVE_BUILD_PYTHON=ON ..
 
 # Build
-make
+make -j$(nproc)
 
 # Run C++ tests
 ctest
-# or
-./rove_tests
 ```
+
+#### Optimized Build (Recommended)
+
+For maximum performance, use the provided build scripts:
+
+```bash
+# Maximum performance (CPU-specific, not portable)
+./build_release.sh
+
+# Portable optimized build (works on different CPUs)
+./build_portable.sh
+
+# Debug build (for development)
+./build_debug.sh
+```
+
+Or manually:
+
+```bash
+mkdir build-release
+cd build-release
+cmake -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_CXX_FLAGS="-O3 -march=native -flto" \
+      -DROVE_BUILD_PYTHON=ON \
+      ..
+make -j$(nproc)
+```
+
+See [BUILD_OPTIMIZED.md](BUILD_OPTIMIZED.md) for detailed optimization options.
 
 ### Build Options
 
 ```bash
+# Release build (optimized, default)
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# Debug build (for development)
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+
 # Build without tests
 cmake -DROVE_BUILD_TESTS=OFF ..
 
 # Build with Python bindings
 cmake -DROVE_BUILD_PYTHON=ON ..
 
-# Both options
-cmake -DROVE_BUILD_TESTS=OFF -DVEK_BUILD_PYTHON=ON ..
+# Optimized build with Python bindings
+cmake -DCMAKE_BUILD_TYPE=Release -DROVE_BUILD_PYTHON=ON ..
+
+# Maximum optimization
+cmake -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_CXX_FLAGS="-O3 -march=native -flto" \
+      -DROVE_BUILD_PYTHON=ON ..
 ```
+
+**Build Types:**
+- `Release` - Optimized for speed (default, `-O3`)
+- `Debug` - No optimization, debug symbols
+- `RelWithDebInfo` - Optimized with debug symbols
+- `MinSizeRel` - Optimized for size
+
+See [BUILD_OPTIMIZED.md](BUILD_OPTIMIZED.md) for complete optimization guide.
 
 ## C++ Usage
 

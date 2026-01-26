@@ -4,6 +4,26 @@ project(rove VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Set default build type to Release if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    message(STATUS "Build type not specified, defaulting to Release")
+endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+# Enable interprocedural optimization (LTO) for Release builds if supported
+if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
+    if(ipo_supported)
+        message(STATUS "IPO/LTO enabled")
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    else()
+        message(STATUS "IPO/LTO not supported: ${ipo_error}")
+    endif()
+endif()
+
 # Library sources
 set(ROVE_SOURCES
     src/aabb.cc
@@ -26,6 +46,21 @@ set(ROVE_SOURCES
 # Create static library
 add_library(rove STATIC ${ROVE_SOURCES})
 target_include_directories(rove PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+# Compiler-specific optimizations for Release builds
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(rove PRIVATE
+            -Wall -Wextra
+            $<$<CONFIG:Release>:-O3>
+        )
+    elseif(MSVC)
+        target_compile_options(rove PRIVATE
+            /W4
+            $<$<CONFIG:Release>:/O2>
+        )
+    endif()
+endif()
 
 # Find Boost
 find_package(Boost REQUIRED)
