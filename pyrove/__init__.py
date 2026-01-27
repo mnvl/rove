@@ -18,7 +18,7 @@ __version__ = "1.0.0"
 
 # Import the compiled C++ extension module
 try:
-    from pyrove_bind import *
+    from .pyrove_bind import *
 except ImportError as e:
     raise ImportError(
         "Failed to import the pyrove C++ extension module. "
