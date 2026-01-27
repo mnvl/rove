@@ -36,142 +36,11 @@ Most of the code was taken from old (15 years+!) pet project https://github.com/
 - NumPy integration for seamless array conversions
 - Float and double precision support
 
-## Build Instructions
-
-### Requirements
-- CMake 3.10+
-- C++11 or later
-- Boost (headers + unit_test_framework for tests)
-- Python 3.8+ (optional, for Python bindings)
-- NumPy (optional, for NumPy integration)
-
-### Building
-
-#### Quick Build (Development)
-
-```bash
-# Clone the repository
-git clone https://github.com/mnvl/rove.git
-cd rove
-
-# Create build directory
-mkdir build
-cd build
-
-# Configure with CMake (defaults to Release build)
-cmake -DROVE_BUILD_PYTHON=ON ..
-
-# Build
-make -j$(nproc)
-
-# Run C++ tests
-ctest
-```
-
-#### Optimized Build (Recommended)
-
-For maximum performance, use the provided build scripts:
-
-```bash
-# Maximum performance (CPU-specific, not portable)
-./build_release.sh
-
-# Portable optimized build (works on different CPUs)
-./build_portable.sh
-
-# Debug build (for development)
-./build_debug.sh
-```
-
-Or manually:
-
-```bash
-mkdir build-release
-cd build-release
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CXX_FLAGS="-O3 -march=native -flto" \
-      -DROVE_BUILD_PYTHON=ON \
-      ..
-make -j$(nproc)
-```
-
-See [BUILD_OPTIMIZED.md](BUILD_OPTIMIZED.md) for detailed optimization options.
-
-### Build Options
-
-```bash
-# Release build (optimized, default)
-cmake -DCMAKE_BUILD_TYPE=Release ..
-
-# Debug build (for development)
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-
-# Build without tests
-cmake -DROVE_BUILD_TESTS=OFF ..
-
-# Build with Python bindings
-cmake -DROVE_BUILD_PYTHON=ON ..
-
-# Optimized build with Python bindings
-cmake -DCMAKE_BUILD_TYPE=Release -DROVE_BUILD_PYTHON=ON ..
-
-# Maximum optimization
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CXX_FLAGS="-O3 -march=native -flto" \
-      -DROVE_BUILD_PYTHON=ON ..
-```
-
-**Build Types:**
-- `Release` - Optimized for speed (default, `-O3`)
-- `Debug` - No optimization, debug symbols
-- `RelWithDebInfo` - Optimized with debug symbols
-- `MinSizeRel` - Optimized for size
-
-See [BUILD_OPTIMIZED.md](BUILD_OPTIMIZED.md) for complete optimization guide.
-
-## C++ Usage
-
-```cpp
-#include "vec.h"
-#include "matrix.h"
-#include "quaternion.h"
-
-using namespace rove;
-
-// Vectors
-vec3 position(1.0f, 2.0f, 3.0f);
-vec3 direction(0.0f, 1.0f, 0.0f);
-direction.normalize();
-
-// Dot and cross products
-float dot = dot_product(position, direction);
-vec3 cross;
-cross_product(cross, position, direction);
-
-// Matrices
-matrix<4, 4, float> transform;
-transform.identity();
-transform.translate(1.0f, 2.0f, 3.0f);
-transform.rotate(vec3(0.0f, 1.0f, 0.0f), PI / 4.0f);
-
-// Quaternions
-quaternion<float> q1, q2;
-q1.identity();
-q2 = quaternion<float>(0.0f, 0.707f, 0.0f, 0.707f);
-
-// SLERP interpolation
-quaternion_slerper<float> slerper;
-slerper.setup(q1, q2);
-auto q_mid = slerper.interpolate(0.5f);
-
-// Collision detection
-sphere<3, float> s1(vec3(0, 0, 0), 1.0f);
-sphere<3, float> s2(vec3(1.5f, 0, 0), 1.0f);
-contact_info<3, float> contact;
-bool colliding = collide(contact, s1, s2);
-```
-
 ## Python Usage
+
+```bash
+pip3 install git+https://github.com/mnvl/rove.git
+```
 
 ```python
 import pyrove
@@ -263,43 +132,49 @@ if frustum.test_intersection(bbox):
     print("Object is visible")
 ```
 
-## Running Python Tests
+## C++ Usage
 
-```bash
-# From the build directory
-python3 ../src/test_pyrove.py
+```cpp
+#include "vec.h"
+#include "matrix.h"
+#include "quaternion.h"
+
+using namespace rove;
+
+// Vectors
+vec3 position(1.0f, 2.0f, 3.0f);
+vec3 direction(0.0f, 1.0f, 0.0f);
+direction.normalize();
+
+// Dot and cross products
+float dot = dot_product(position, direction);
+vec3 cross;
+cross_product(cross, position, direction);
+
+// Matrices
+matrix<4, 4, float> transform;
+transform.identity();
+transform.translate(1.0f, 2.0f, 3.0f);
+transform.rotate(vec3(0.0f, 1.0f, 0.0f), PI / 4.0f);
+
+// Quaternions
+quaternion<float> q1, q2;
+q1.identity();
+q2 = quaternion<float>(0.0f, 0.707f, 0.0f, 0.707f);
+
+// SLERP interpolation
+quaternion_slerper<float> slerper;
+slerper.setup(q1, q2);
+auto q_mid = slerper.interpolate(0.5f);
+
+// Collision detection
+sphere<3, float> s1(vec3(0, 0, 0), 1.0f);
+sphere<3, float> s2(vec3(1.5f, 0, 0), 1.0f);
+contact_info<3, float> contact;
+bool colliding = collide(contact, s1, s2);
 ```
 
 ## Performance Benchmarks
-
-Compare pyrove performance with NumPy using the optimized Release build:
-
-```bash
-# Run the benchmark script
-./run_benchmark.sh
-
-# Or directly with Python 3.14+
-PYTHONPATH=build-release .venv/bin/python3.14 benchmark.py
-```
-
-### Benchmark Results Summary
-
-Based on Release build with `-O3 -march=native -flto` optimizations:
-
-**pyrove is faster for:**
-- ✅ **Cross products**: 4.4x faster (2.70 µs vs 11.98 µs)
-- ✅ **Triangle area calculations**: 3.9x faster (3.66 µs vs 14.08 µs)
-- ✅ **Matrix inverse**: 2.2x faster (1.94 µs vs 4.29 µs)
-- ✅ **Vector normalization**: 1.8x faster (0.85 µs vs 1.54 µs)
-- ✅ **Vector length**: 1.4x faster (0.86 µs vs 1.16 µs)
-
-**NumPy is faster for:**
-- ❌ **Basic vector arithmetic**: 3x faster (addition, subtraction)
-- ❌ **Array conversions**: 6x faster (significant overhead in pyrove)
-- ❌ **Ray-plane intersection**: 3x faster
-- ❌ **Matrix-vector multiplication**: 1.8x faster
-
-**Overall:** pyrove wins 7/19 benchmarks (36.8%), optimized for graphics/robotics use cases.
 
 See [BENCHMARKS.md](BENCHMARKS.md) for detailed results and performance analysis.
 
@@ -432,14 +307,3 @@ See LICENSE.md file for details.
 
 Contributions are welcome! Please ensure all tests pass before submitting pull requests.
 
-```bash
-# Run C++ tests
-cd build
-ctest
-
-# Run Python tests
-cd build
-cmake -DROVE_BUILD_PYTHON=ON ..
-make
-python3 ../src/test_pyrove.py
-```
