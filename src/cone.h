@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include "scalar.h"
 #include "vec.h"
 #include "aabb.h"
@@ -65,10 +66,15 @@ public:
 	}
 
 	/// @brief Get a conservative axis-aligned bounding box for the cone
+	///
+	/// The base's radius is range * tan(half angle), and contains() goes as far as it.  A half angle of 90 degrees or more has a
+	/// base of no finite size: the box is infinite across the axis.
 	aabb<N, T> bounds() const
 	{
-		T sin_half = std::sqrt(std::max(T(0), T(1) - cos_half_angle * cos_half_angle));
-		T base_radius = range * sin_half;
+		T const cos_abs = abs(cos_half_angle);
+		T const base_radius = (cos_abs > T(0)
+			? range * (sqrt(std::max(T(0), T(1) - cos_half_angle * cos_half_angle)) / cos_abs)
+			: std::numeric_limits<T>::infinity());
 		vec_type base_center = apex + direction * range;
 
 		vec_type r;

@@ -13,6 +13,7 @@
 #include <limits>
 #include <random>
 #include <rove/traits.h>
+#include <rove/octree.h>
 
 namespace
 {
@@ -195,6 +196,61 @@ BOOST_AUTO_TEST_CASE(a_cone_passes_over_what_is_clearly_outside_it)
 	BOOST_TEST(!cone_traits::intersects(small_at(v3(5, 0, 2)), spot));                 // to the side
 	BOOST_TEST(!cone_traits::intersects(small_at(v3(0, 7, 9)), spot));                 // 38 degrees off the axis
 	BOOST_TEST(!cone_traits::intersects(tri_t(v3(-20, -20, -1), v3(20, -20, -1), v3(0, 20, -1)), spot));    // a floor behind
+}
+
+// What the cone holds, its bounds hold: the base's radius is range * tan(half angle)
+BOOST_AUTO_TEST_CASE(a_cone_is_inside_its_bounds)
+{
+	std::mt19937 gen(5);
+	std::uniform_real_distribution<float> u(-1, 1);
+	for (float const degrees : {10.0f, 45.0f, 60.0f, 80.0f}) {
+		rove::cone<3> const c(v3(1, 2, 3), normalize(v3(0.3f, 1, -0.2f)), std::cos(degrees * rove::PI / 180), 2);
+		auto const b = c.bounds();
+		int inside = 0;
+		for (int i = 0; i < 200000; ++i) {
+			v3 const p = c.apex + v3(u(gen), u(gen), u(gen)) * (2.5f * std::max(1.0f, std::tan(degrees * rove::PI / 180)));
+			if (c.contains(p)) {
+				++inside;
+				BOOST_REQUIRE(b.contains(p));
+			}
+		}
+		BOOST_TEST(inside > 100);
+	}
+}
+
+BOOST_AUTO_TEST_CASE(a_cone_of_45_degrees_bounds_its_base)
+{
+	rove::cone<3> const c(v3(0, 0, 0), v3(0, 0, 1), std::cos(rove::PI / 4), 1);
+	BOOST_TEST(c.contains(v3(0.99f, 0, 1)));
+	BOOST_TEST(c.bounds().contains(v3(0.99f, 0, 1)));
+	BOOST_TEST(c.bounds().hi.x == 1.0f, boost::test_tools::tolerance(1e-5f));
+	BOOST_TEST(c.bounds().lo.y == -1.0f, boost::test_tools::tolerance(1e-5f));
+}
+
+// A half angle of 90 degrees has no finite base: its bounds say so instead of cutting it off
+BOOST_AUTO_TEST_CASE(a_cone_of_90_degrees_has_unbounded_sides)
+{
+	rove::cone<3> const c(v3(0, 0, 0), v3(0, 0, 1), 0, 1);
+	BOOST_TEST(c.contains(v3(1e6f, 0, 0.5f)));
+	BOOST_TEST(c.bounds().contains(v3(1e6f, 0, 0.5f)));
+}
+
+BOOST_AUTO_TEST_CASE(an_octree_finds_what_a_cone_holds_at_the_edge_of_its_base)
+{
+	// a small box of a tree: subdivided so that the cone's bounds decide which cells are visited
+	rove::octree<tri_t, int> tree(rove::aabb<3>(v3(-4, -4, -4), v3(4, 4, 4)), 1, 0.01f);
+	// a tiny triangle at radius 0.9 of a base of radius 1, outside range * sin(45 degrees)
+	tree.insert(tri_t(v3(0.9f, 0, 0.99f), v3(0.91f, 0, 0.99f), v3(0.9f, 0.01f, 0.99f)), 7);
+	// others, so that the tree does divide
+	for (int i = 0; i < 16; ++i) {
+		float const x = -3.5f + 0.1f * float(i);
+		tree.insert(tri_t(v3(x, -3, -3), v3(x + 0.01f, -3, -3), v3(x, -2.99f, -3)), i);
+	}
+	tree.build();
+	rove::cone<3> const c(v3(0, 0, 0), v3(0, 0, 1), std::cos(rove::PI / 4), 1);
+	auto const found = tree.query_intersection(c);
+	BOOST_REQUIRE(found.size() == 1u);
+	BOOST_TEST(found[0] == 7);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

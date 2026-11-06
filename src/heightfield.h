@@ -29,6 +29,7 @@ public:
 	// Wrong by the house rule, kept as it was: off the field (and, for max_y_in_cell, outside a cell) these answer default_value, a
 	// plausible height, instead of saying there is none.  A caller passes a value it cannot mistake (a NaN) and checks for it.  The
 	// class is templated on T but works in scalar and matrix<4,4> whatever T is.
+	/// The field's own (local) height under a point in world space
 	scalar y_under(vec<3> const &position, scalar default_value = 0);
 	scalar max_y_in_cell(int col, int row, scalar default_value = 0) const;
 	scalar max_y_in_cell(vec<3> const &position, scalar default_value = 0) const;
@@ -42,6 +43,9 @@ public:
 	void set_local_to_world(rove::matrix<4, 4> const &tf);
 	cell_type world_position_to_cell(vec<3> const &position) const;
 	vec<3> cell_to_world_position(cell_type const &cell) const;
+	/// The first point of the surface along @p r, out to max_distance (a distance, whatever the length of r.a), from a start in or
+	/// out of the field's box.  On a hit position and normal are in world space, the normal of unit length, and r.apply(time) is the
+	/// position.
 	contact_info<3> trace(ray<3> const &r, scalar max_distance = 1000.0f) const;
 	void load_from_raw_buffer(value_type const *heights);
 	void resize(size_t ncols, size_t nrows);

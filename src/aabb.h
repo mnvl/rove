@@ -290,13 +290,14 @@ public:
 	/**
 	 * @brief Ray trace against AABB with intersection times
 	 *
-	 * Finds where a ray enters and exits the AABB.
+	 * Finds the part of [t_min, t_max] the ray spends in the box, the faces included.  A ray that starts inside
+	 * entered at t_min, and one still inside at t_max leaves at t_max.  A ray with no direction is in the box or not.
 	 *
-	 * @param[out] t0 Time of entry (where ray enters AABB)
-	 * @param[out] t1 Time of exit (where ray leaves AABB)
+	 * @param[out] t0 Time of entry, t_min or later (t_max on a miss)
+	 * @param[out] t1 Time of exit, t_max or sooner (t_min on a miss)
 	 * @param t_min Minimum t value to consider (default 0)
 	 * @param t_max Maximum t value to consider (default 1)
-	 * @return true if ray intersects AABB in [t_min, t_max]
+	 * @return true if ray meets the AABB in [t_min, t_max]
 	 */
 	[[nodiscard]] bool trace(ray_type const &r, T *t0, T *t1, T t_min = 0, T t_max = 1) const;
 
