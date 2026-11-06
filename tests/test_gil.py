@@ -8,6 +8,7 @@ built or traced a tree).
 The oracle: while one thread is in the call, the main thread wakes every millisecond to take a timestamp.  With the GIL held through
 the call it cannot wake until the call is over; released, its longest gap is a few milliseconds, far below the call.  (The queries
 that return items keep the GIL: building their Python lists is most of their time, and it needs it.)"""
+import sys
 import threading
 import time
 import unittest
@@ -15,6 +16,8 @@ import unittest
 import numpy as np
 
 import pyrove
+
+GIL = sys.version_info < (3, 13) or sys._is_gil_enabled()
 
 
 def _grid_tree(n, built=True):
@@ -59,6 +62,7 @@ def _longest_stall(call):
         time.sleep(0.001)
         ticks.append(time.perf_counter())
     t.join()
+    ticks.append(time.perf_counter())       # (the call can be over before the loop first looks)
     return span["took"], float(np.diff(ticks).max())
 
 
@@ -66,9 +70,27 @@ class TestTheGilIsReleased(unittest.TestCase):
     def assert_runs_alongside(self, call, what, repeats=1):
         """call makes `repeats` calls of what is checked: the main thread must run within a quarter of one of them"""
         took, stall = _longest_stall(call)
+        # A free-threaded Python has no GIL for the call to hold, so a stall there says nothing about it.  They do happen: on macOS
+        # with 3.14t, the main thread has stood still for half a call.  The tests still make the calls and check their answers.
+        if not GIL:
+            return
         self.assertGreater(took, 0.1, f"{what} took {took:.3f} s: too short to tell (make it longer)")
         self.assertLess(stall, took / (4 * repeats),
                         f"{what}: the main thread could not run for {stall:.3f} s of {took:.3f} s ({repeats} calls)")
+
+    def test_a_call_that_ends_at_once_is_measured(self):
+        for _ in range(300):     # it can be over before the main thread first looks
+            took, stall = _longest_stall(lambda: None)
+            self.assertGreaterEqual(took, 0.0)
+            self.assertGreaterEqual(stall, 0.0)
+
+    def test_a_call_that_keeps_the_gil_is_caught(self):
+        keeps_the_gil = lambda: sum(range(30_000_000))      # all in C, and sum() does not let go
+        if GIL:
+            with self.assertRaisesRegex(AssertionError, "could not run"):
+                self.assert_runs_alongside(keeps_the_gil, "sum")
+        else:
+            self.assert_runs_alongside(keeps_the_gil, "sum")
 
     def test_raycast_batch(self):
         tree = _grid_tree(100)
