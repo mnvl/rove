@@ -32,6 +32,7 @@ template bool capsule<3, double>::test_intersection(triangle<3, double> const &t
 template bool capsule<3, double>::test_intersection(capsule<3, double> const &other) const;
 #ifdef ROVE_DFLOAT
 template bool capsule<3, dfloat>::test_intersection(capsule<3, dfloat> const &other) const;
+template bool capsule<3, dfloat>::test_intersection(triangle<3, dfloat> const &triangle_shape) const;
 #endif
 
 }

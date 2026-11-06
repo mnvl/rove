@@ -95,8 +95,8 @@ public:
 		cell_size_(cell_size),
 		axes_{(up + 1) % 3, (up + 2) % 3}
 	{
-		if (!(cell_size > 0) || !std::isfinite(cell_size))
-			throw std::invalid_argument("hash_grid: cell_size must be finite and positive, got " + std::to_string(cell_size));
+		if (!(cell_size > 0) || !detail::isfinite_of(cell_size))
+			throw std::invalid_argument("hash_grid: cell_size must be finite and positive, got " + detail::to_string_of(cell_size));
 		if (up < 0 || up > 2)
 			throw std::invalid_argument("hash_grid: up must be 0, 1 or 2, got " + std::to_string(up));
 	}
@@ -153,7 +153,7 @@ public:
 		aabb_type const b = traits_type::bounds(primitive);
 		b.check_finite("hash_grid: an item's bounds");
 		for (int a : axes_)
-			if (!(std::abs(b.lo.i[a] / cell_size_) < limit && std::abs(b.hi.i[a] / cell_size_) < limit))
+			if (!(abs(b.lo.i[a] / cell_size_) < limit && abs(b.hi.i[a] / cell_size_) < limit))
 				throw std::out_of_range("hash_grid: an item beyond 2^30 columns from the origin");
 		if (items_.size() >= (std::numeric_limits<index_type>::max)())
 			throw std::length_error("hash_grid: full");
@@ -237,7 +237,7 @@ public:
 	{
 		r.check_finite("hash_grid: a ray");
 		if (!(t_min <= t_max))
-			throw std::invalid_argument("hash_grid: trace over [" + std::to_string(t_min) + ", " + std::to_string(t_max) + "]");
+			throw std::invalid_argument("hash_grid: trace over [" + detail::to_string_of(t_min) + ", " + detail::to_string_of(t_max) + "]");
 		contact_type best;
 		best.happened = false;
 		if (items_.empty())
@@ -336,7 +336,7 @@ private:
 
 	cell cell_of(vec_type const &p) const
 	{
-		return cell{int32_t(std::floor(p.i[axes_[0]] / cell_size_)), int32_t(std::floor(p.i[axes_[1]] / cell_size_))};
+		return cell{int32_t(detail::floor_of(p.i[axes_[0]] / cell_size_)), int32_t(detail::floor_of(p.i[axes_[1]] / cell_size_))};
 	}
 
 	// Calls f once for each item the query meets.  An item listed in several
@@ -347,7 +347,7 @@ private:
 	{
 		aabb_type q = QueryTraits::bounds(query);
 		for (int k = 0; k < 3; ++k)
-			if (std::isnan(q.lo.i[k]) || std::isnan(q.hi.i[k]))
+			if (detail::isnan_of(q.lo.i[k]) || detail::isnan_of(q.hi.i[k]))
 				throw std::invalid_argument("hash_grid: a query with NaN bounds");
 		if (items_.empty() || !q.test_intersection(bounds_))
 			return;

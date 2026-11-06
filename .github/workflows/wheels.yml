@@ -9,6 +9,10 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# Third-party actions are pinned by commit, and only the publishing job can do more than read
+permissions:
+  contents: read
+
 jobs:
   wheels:
     name: Wheels ${{ matrix.os }}
@@ -18,9 +22,9 @@ jobs:
       matrix:
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, windows-2022]
     steps:
-      - uses: actions/checkout@v4
-      - uses: pypa/cibuildwheel@v4.3.5
-      - uses: actions/upload-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pypa/cibuildwheel@f9b966cfadf4109556cadc5bb39ddb72d0ce664e # v4.3.5
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
@@ -28,24 +32,38 @@ jobs:
   sdist:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: pipx run build --sdist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sdist
           path: dist/*.tar.gz
 
+  # The tag must say the version the package says: a mistagged commit publishes nothing
+  version:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: The tag, pyproject.toml and CMakeLists.txt agree
+        run: |
+          in_pyproject=$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)
+          in_cmake=$(sed -n 's/^project(rove VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          test "$GITHUB_REF_NAME" = "v$in_pyproject"
+          test "$in_pyproject" = "$in_cmake"
+
   publish:
-    # PyPI trusted publishing: configure the project on PyPI for this repository and workflow first
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [wheels, sdist]
+    # PyPI trusted publishing: configure the project on PyPI for this repository and workflow first.  Only from the push of a tag (each
+    # wheel has passed tests/ on cibuildwheel): a manual run on a v* ref builds, and does not publish.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [version, wheels, sdist]
     runs-on: ubuntu-24.04
     environment: pypi
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: dist
           merge-multiple: true
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1

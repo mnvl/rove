@@ -89,6 +89,23 @@ sign(T x, T epsilon = scalar_traits<T>::default_epsilon) {
 	return 0;
 }
 
+namespace detail
+{
+
+// For code templated on the scalar: the standard's for float and double, a T of one's own's by argument lookup (dfloat has no std:: of
+// its own, and its constructor refuses a double).
+template<class T> inline bool isnan_of(T v) { using std::isnan; return isnan(v); }
+template<class T> inline bool isfinite_of(T v) { using std::isfinite; return isfinite(v); }
+template<class T> inline T floor_of(T v) { using std::floor; return floor(v); }
+template<class T> inline std::string to_string_of(T v) { using std::to_string; return to_string(v); }
+template<class T> constexpr T constant_of(double v)
+{
+	if constexpr (std::is_floating_point_v<T>) return T(v);
+	else return T(float(v));
+}
+
+}
+
 // (0 - s, not -s: the absolute value of a zero is +0, and a NaN stays one)
 template<class T> inline T
 abs(T s) {

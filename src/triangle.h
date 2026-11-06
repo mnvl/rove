@@ -81,7 +81,7 @@ public:
 
 	// the area of the triangle
 	T area() const {
-		return T(0.5)*(cross(A, B) + cross(B, C) + cross(C, A)).length();
+		return detail::constant_of<T>(0.5)*(cross(A, B) + cross(B, C) + cross(C, A)).length();
 	}
 
 	// the centre of gravity, i.e. the concurrence of the medians
@@ -109,7 +109,7 @@ public:
 	// the circumcenter, i.e. the concurrence of the perpendicular
 	// bisectors to the sides
 	vec_type circumcenter() const {
-		return T(0.5)*(T(3)*cog() - orthocenter());
+		return detail::constant_of<T>(0.5)*(T(3)*cog() - orthocenter());
 	}
 
 	// the radius of the circumcircle, i.e. the circle that passes
@@ -199,11 +199,11 @@ public:
 	// circle), i.e. the circle that passes through the three feet of
 	// the altitudes and the middle points of the sides
 	vec_type feuerbach_center() const {
-		return T(0.5)*(circumcenter()+orthocenter());
+		return detail::constant_of<T>(0.5)*(circumcenter()+orthocenter());
 	}
 
 	T feuerbach_radius() const {
-		return T(0.5)*circumcircle_radius();
+		return detail::constant_of<T>(0.5)*circumcircle_radius();
 	}
 
 	// transform triangle by matrix
@@ -244,7 +244,7 @@ public:
 	[[nodiscard]] bool trace(ray_type const &r,T &t,vec_type &v,T t_min = 0, T t_max = 1, T epsilon = scalar_traits<T>::default_epsilon) const {
 		// The barycentric bounds are a hair wider than [0, 1]: rounding puts a ray through a shared edge on the outside of
 		// both triangles, and a mesh would have a crack there.  The nearest hit wins, so a double hit costs nothing.
-		constexpr T edge_slack = T(1e-5);
+		constexpr T edge_slack = detail::constant_of<T>(1e-5);
 		vec_type edge1 = B - A;
 		vec_type edge2 = C - A;
 		vec_type pvec = cross(r.a, edge2);
@@ -293,7 +293,7 @@ public:
 		if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) return B + (C - B) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)));
 		T const sum = va + vb + vc;
 		// a NaN anywhere fails every test above and lands here
-		if (std::isnan(sum)) return vec_type(sum, sum, sum);
+		if (detail::isnan_of(sum)) return vec_type(sum, sum, sum);
 		if (!(sum > 0)) {
 			// no area: the nearest of the three edges
 			segment_type const edges[3] = {segment_type(A, B), segment_type(B, C), segment_type(C, A)};

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#ifdef ROVE_DFLOAT
+#include "dfloat.h"
+#endif
 #include "triangle.h"
 #include "intersect.h"
 
@@ -51,7 +54,7 @@ template<class T>
 bool on_segment_2d(point2<T> const &a, point2<T> const &b, point2<T> const &p)
 {
 	T const zero = scalar_traits<T>::zero_length;
-	if (std::abs(orient_2d(a, b, p)) > zero) {
+	if (abs(orient_2d(a, b, p)) > zero) {
 		return false;
 	}
 
@@ -78,10 +81,10 @@ bool segments_intersect_2d(point2<T> const &a, point2<T> const &b, point2<T> con
 	}
 
 	return
-		(std::abs(o1) <= zero && on_segment_2d(a, b, c)) ||
-		(std::abs(o2) <= zero && on_segment_2d(a, b, d)) ||
-		(std::abs(o3) <= zero && on_segment_2d(c, d, a)) ||
-		(std::abs(o4) <= zero && on_segment_2d(c, d, b));
+		(abs(o1) <= zero && on_segment_2d(a, b, c)) ||
+		(abs(o2) <= zero && on_segment_2d(a, b, d)) ||
+		(abs(o3) <= zero && on_segment_2d(c, d, a)) ||
+		(abs(o4) <= zero && on_segment_2d(c, d, b));
 }
 
 template<class T>
@@ -101,9 +104,9 @@ template<class T>
 bool coplanar_intersects(triangle<3, T> const &left, triangle<3, T> const &right, vec<3, T> const &normal)
 {
 	unsigned drop_axis = 0;
-	T const abs_x = std::abs(normal.x);
-	T const abs_y = std::abs(normal.y);
-	T const abs_z = std::abs(normal.z);
+	T const abs_x = abs(normal.x);
+	T const abs_y = abs(normal.y);
+	T const abs_z = abs(normal.z);
 	if (abs_y >= abs_x && abs_y >= abs_z) {
 		drop_axis = 1;
 	} else if (abs_z >= abs_x && abs_z >= abs_y) {
@@ -193,5 +196,8 @@ bool triangle<3, T>::test_intersection(triangle const &t) const
 
 template bool triangle<3, scalar>::test_intersection(triangle<3, scalar> const &t) const;
 template bool triangle<3, double>::test_intersection(triangle<3, double> const &t) const;
+#ifdef ROVE_DFLOAT
+template bool triangle<3, dfloat>::test_intersection(triangle<3, dfloat> const &t) const;
+#endif
 
 }

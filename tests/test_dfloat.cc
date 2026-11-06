@@ -27,6 +27,16 @@
 #include <rove/scalar.h>
 #include <rove/sphere.h>
 #include <rove/vec.h>
+#include <rove/aabb.h>
+#include <rove/obb.h>
+#include <rove/frustum.h>
+#include <rove/plane.h>
+#include <rove/triangle.h>
+#include <rove/cone.h>
+#include <rove/ray.h>
+#include <rove/octree.h>
+#include <rove/hash_grid.h>
+#include <rove/traits.h>
 
 namespace
 {
@@ -472,6 +482,64 @@ BOOST_AUTO_TEST_CASE(random_numbers_and_noise_on_dfloat)
 	// value noise: at a lattice point the lattice's value, which is float's
 	BOOST_REQUIRE_EQUAL(rove::value_noise(dfloat(3.0f), 9).value(), rove::value_noise(3.0f, 9));
 	BOOST_REQUIRE(std::abs(float(rove::value_noise(dfloat(3.3f), dfloat(-1.25f), 9)) - rove::value_noise(3.3f, -1.25f, 9)) < 1e-6f);
+}
+
+// What the README says: every template takes dfloat.  Each answered through dfloat's own arithmetic, compared with the float's.
+BOOST_AUTO_TEST_CASE(the_shapes_on_dfloat_answer_as_the_shapes_on_float_do)
+{
+	using D = rove::dfloat;
+	using V = rove::vec<3, D>;
+	V const zero(D(0.0f), D(0.0f), D(0.0f)), one(D(1.0f), D(1.0f), D(1.0f)), x(D(1.0f), D(0.0f), D(0.0f));
+
+	rove::aabb<3, D> const box(zero, one);
+	D t0, t1;
+	BOOST_REQUIRE(box.trace(rove::ray<3, D>(V(D(-1.0f), D(0.5f), D(0.5f)), x), &t0, &t1, D(0.0f), D(10.0f)));
+	BOOST_TEST(t0.value() == 1.0f);
+	BOOST_TEST(t1.value() == 2.0f);
+	rove::aabb<2, D> const rect(rove::vec<2, D>(D(0.0f), D(0.0f)), rove::vec<2, D>(D(1.0f), D(1.0f)));
+	BOOST_TEST(rect.trace(rove::ray<2, D>(rove::vec<2, D>(D(-1.0f), D(0.5f)), rove::vec<2, D>(D(1.0f), D(0.0f))), D(0.0f), D(10.0f)));
+
+	rove::obb<3, D> const o(box);
+	BOOST_TEST(o.test_intersection(o));
+	BOOST_TEST(float(o.radius()) == std::sqrt(0.75f), boost::test_tools::tolerance(1e-5f));
+	rove::obb<3, D> const far_box(V(D(5.0f), D(5.0f), D(5.0f)), x, V(D(0.0f), D(1.0f), D(0.0f)), V(D(0.0f), D(0.0f), D(1.0f)));
+	BOOST_TEST(!o.test_intersection(far_box));
+	BOOST_TEST(!o.test_collision(far_box, V(D(0.0f), D(0.0f), D(0.0f))));
+
+	rove::plane<D> const p(zero, x);
+	BOOST_TEST(p.contains(V(D(0.0f), D(2.0f), D(3.0f))));
+	BOOST_TEST((p.classify(V(D(1.0f), D(0.0f), D(0.0f))) != p.classify(V(D(-1.0f), D(0.0f), D(0.0f)))));
+
+	rove::matrix<4, 4, D> view_projection;
+	view_projection.identity();
+	rove::frustum<D> const f(view_projection);
+	BOOST_TEST(f.contains(V(D(0.0f), D(0.0f), D(0.5f))));
+	BOOST_TEST(!f.contains(V(D(5.0f), D(0.0f), D(0.5f))));
+
+	rove::triangle<3, D> const tri(zero, x, V(D(0.0f), D(1.0f), D(0.0f)));
+	BOOST_TEST(float(tri.area()) == 0.5f);
+	BOOST_TEST(tri.contains(V(D(0.25f), D(0.25f), D(0.0f))));
+	BOOST_TEST(float(tri.closest_point(V(D(0.25f), D(0.25f), D(5.0f))).z) == 0.0f);
+
+	rove::cone<3, D> const c(zero, x, D(0.5f), D(1.0f));
+	BOOST_TEST(c.bounds().contains(x));
+
+	rove::capsule<3, D> const cap(zero, one, D(1.0f));
+	BOOST_TEST(float(cap.bounds().lo.x) == -1.0f);
+	BOOST_TEST(cap.test_intersection(cap));
+	BOOST_TEST(float(cap.distance(V(D(5.0f), D(0.0f), D(0.0f)))) > 0.0f);
+
+	rove::sphere<3, D> const s(zero, D(1.0f));
+	BOOST_TEST(s.test_intersection(rove::ray<3, D>(V(D(3.0f), D(0.0f), D(0.0f)), V(D(-1.0f), D(0.0f), D(0.0f)))));
+
+	rove::octree<rove::aabb<3, D>, int> tree(box);
+	tree.insert(box, 7);
+	tree.build();
+	BOOST_TEST(tree.query_intersection(box).size() == 1u);
+
+	rove::hash_grid<rove::aabb<3, D>, int> grid(D(1.0f));
+	grid.insert(box, 9);
+	BOOST_TEST(grid.query_intersection(box).size() == 1u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

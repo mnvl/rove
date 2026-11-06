@@ -3,6 +3,9 @@
 
 #include "ray.h"
 #include "aabb.h"
+#ifdef ROVE_DFLOAT
+#include "dfloat.h"
+#endif
 
 namespace rove
 {
@@ -62,5 +65,10 @@ template class aabb<2>;
 template class aabb<3>;
 template class aabb<2, double>;
 template class aabb<3, double>;
+
+#ifdef ROVE_DFLOAT
+template class aabb<2, dfloat>;
+template class aabb<3, dfloat>;
+#endif
 
 }

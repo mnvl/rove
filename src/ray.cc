@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#ifdef ROVE_DFLOAT
+#include "dfloat.h"
+#endif
 #include "matrix.h"
 #include "ray.h"
 
@@ -87,5 +90,9 @@ template class ray<2>;
 template class ray<3>;
 template class ray<2, double>;
 template class ray<3, double>;
+#ifdef ROVE_DFLOAT
+template class ray<2, dfloat>;
+template class ray<3, dfloat>;
+#endif
 
 }

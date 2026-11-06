@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#ifdef ROVE_DFLOAT
+#include "dfloat.h"
+#endif
 #include <cassert>
 #include "aabb.h"
 #include "obb.h"
@@ -113,5 +116,8 @@ plane<T>::classify(obb<dimensions, T> const &bounds, T epsilon) const
 
 template class plane<>;
 template class plane<double>;
+#ifdef ROVE_DFLOAT
+template class plane<dfloat>;
+#endif
 
 }

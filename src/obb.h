@@ -591,7 +591,7 @@ public:
 	 *                   Default 1e-2 corresponds to ~0.6° maximum parallelism.
 	 * @return true if the edge vectors are linearly independent
 	 */
-	bool is_basis_linearly_independent(T tolerance = T(1e-2)) const;
+	bool is_basis_linearly_independent(T tolerance = detail::constant_of<T>(1e-2)) const;
 
 	/**
 	 * @brief Test whether this OBB is degenerate (has near-zero volume)
@@ -611,7 +611,7 @@ public:
 	 *                   Default 1e-2 corresponds to ~0.6° maximum parallelism.
 	 * @return true if the OBB is degenerate
 	 */
-	bool is_degenerate(T tolerance = T(1e-2)) const;
+	bool is_degenerate(T tolerance = detail::constant_of<T>(1e-2)) const;
 
 private:
 	// check for non-intersection with triangle

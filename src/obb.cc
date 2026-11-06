@@ -5,6 +5,9 @@
 
 #include "capsule.h"
 #include "triangle.h"
+#ifdef ROVE_DFLOAT
+#include "dfloat.h"
+#endif
 
 namespace rove
 {
@@ -371,5 +374,9 @@ obb<3,T>::test_intersection(capsule<dimensions, T> const &cap) const
 
 template class obb<3>;
 template class obb<3, double>;
+
+#ifdef ROVE_DFLOAT
+template class obb<3, dfloat>;
+#endif
 
 }

@@ -242,7 +242,7 @@ public:
 		require_built("trace");
 		r.check_finite("octree: a ray");
 		if (!(t_min <= t_max)) {
-			throw std::invalid_argument("octree: trace over [" + std::to_string(t_min) + ", " + std::to_string(t_max) + "]");
+			throw std::invalid_argument("octree: trace over [" + detail::to_string_of(t_min) + ", " + detail::to_string_of(t_max) + "]");
 		}
 		contact_type best;
 		best.happened = false;
@@ -647,7 +647,7 @@ private:
 			span s{from, to, i};
 			for (int k = 0; k < 3 && s.from <= s.to; ++k) {
 				scalar_type const c = current.centre.i[k];
-				scalar_type const slack = scalar_type(1e-5) * (std::abs(c) + current.bounds.hi.i[k] - current.bounds.lo.i[k]);
+				scalar_type const slack = detail::constant_of<scalar_type>(1e-5) * (abs(c) + current.bounds.hi.i[k] - current.bounds.lo.i[k]);
 				bool const upper = (i >> k) & 1u;          // x >= c - slack, else x <= c + slack
 				scalar_type const plane = upper ? c - slack : c + slack;
 				scalar_type const o = r.r0.i[k], d = r.a.i[k];
