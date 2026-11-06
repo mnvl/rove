@@ -58,8 +58,8 @@ public:
 	/// A uniform random bit generator, for whatever wants one (the standard library's distributions differ between libraries, though:
 	/// the ones below do not)
 	result_type operator()() { return next(); }
-	static constexpr result_type min() { return 0; }
-	static constexpr result_type max() { return std::numeric_limits<result_type>::max(); }
+	static constexpr result_type (min)() { return 0; }
+	static constexpr result_type (max)() { return (std::numeric_limits<result_type>::max)(); }
 
 	/// A whole number in [0, n), each as likely as the others (Lemire's method: no modulo's bias).  n of 0 is std::invalid_argument.
 	std::uint32_t below(std::uint32_t n)
@@ -142,7 +142,7 @@ public:
 		using std::sqrt, std::sin, std::cos;
 		T const z = uniform(T(-1), T(1));
 		T const a = 2 * std::numbers::pi_v<T> * unit<T>();
-		T const r = sqrt(std::max(T(0), 1 - z * z));
+		T const r = sqrt((std::max)(T(0), 1 - z * z));
 		return vec<3, T>(r * cos(a), r * sin(a), z);
 	}
 
@@ -192,7 +192,7 @@ private:
 	/// A whole number in [0, span], each as likely as the others
 	std::uint64_t whole_up_to(std::uint64_t span)
 	{
-		if (span < std::numeric_limits<std::uint32_t>::max())
+		if (span < (std::numeric_limits<std::uint32_t>::max)())
 			return below(std::uint32_t(span) + 1);
 		// by rejection, of 64 bits under the smallest mask that covers the span
 		std::uint64_t mask = span;

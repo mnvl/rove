@@ -225,8 +225,8 @@ public:
 		T scale = T(0);
 		for (vec_type const *p : {&A, &B, &C, &v})
 			for (size_t n = 0; n < dimensions; ++n)
-				scale = std::max(scale, abs(p->i[n]));
-		T const tolerance = std::max(scalar_traits<T>::default_epsilon, scale * 4 * std::numeric_limits<T>::epsilon());
+				scale = (std::max)(scale, abs(p->i[n]));
+		T const tolerance = (std::max)(scalar_traits<T>::default_epsilon, scale * 4 * std::numeric_limits<T>::epsilon());
 		return to_plane().contains(v, tolerance) && contains_on_plane(v);
 	}
 
@@ -240,7 +240,7 @@ public:
 	// parallel.  It is absolute: a unit ray's determinant is twice the area
 	// times the cosine of incidence, so the float default misses triangles
 	// under half a square millimetre (more at a slant); pass
-	// std::numeric_limits<T>::min() to miss only exactly parallel rays.
+	// (std::numeric_limits<T>::min)() to miss only exactly parallel rays.
 	[[nodiscard]] bool trace(ray_type const &r,T &t,vec_type &v,T t_min = 0, T t_max = 1, T epsilon = scalar_traits<T>::default_epsilon) const {
 		// The barycentric bounds are a hair wider than [0, 1]: rounding puts a ray through a shared edge on the outside of
 		// both triangles, and a mesh would have a crack there.  The nearest hit wins, so a double hit costs nothing.
@@ -313,7 +313,7 @@ public:
 	T closest_points(segment_type const &s, vec_type &on_segment, vec_type &on_triangle) const {
 		T t;
 		vec_type at;
-		if (trace(s.to_ray(), t, at, T(0), T(1), std::numeric_limits<T>::min())) {
+		if (trace(s.to_ray(), t, at, T(0), T(1), (std::numeric_limits<T>::min)())) {
 			on_segment = on_triangle = at;
 			return 0;
 		}
@@ -349,7 +349,7 @@ public:
 		T lo0, hi0, lo1, hi1;
 		if (!part_of_line_inside(r, t.to_plane(), lo0, hi0)) return false;
 		if (!t.part_of_line_inside(r, to_plane(), lo1, hi1)) return false;
-		T const lo = std::max(lo0, lo1), hi = std::min(hi0, hi1);
+		T const lo = (std::max)(lo0, lo1), hi = (std::min)(hi0, hi1);
 		if (lo > hi) return false;
 
 		ln.construct(r.apply(lo), r.apply(hi));
@@ -450,8 +450,8 @@ private:
 			T const ks[2] = { k == T(0) ? T(0) : dp / k, k == T(0) ? T(1) : dp / k };
 			for (T const f : ks) {
 				T const u = dot(p + (q - p) * f - line.r0, line.a);
-				lo = any ? std::min(lo, u) : u;
-				hi = any ? std::max(hi, u) : u;
+				lo = any ? (std::min)(lo, u) : u;
+				hi = any ? (std::max)(hi, u) : u;
 				any = true;
 			}
 		}

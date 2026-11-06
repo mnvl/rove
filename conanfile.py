@@ -6,9 +6,10 @@ import os
 import re
 
 from conan import ConanFile
+from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
-from conan.tools.files import copy, load
+from conan.tools.files import copy, load, rmdir
 
 
 class RoveConan(ConanFile):
@@ -21,8 +22,9 @@ class RoveConan(ConanFile):
     topics = ("math", "geometry", "3d", "collision", "game-development", "robotics")
     package_type = "static-library"
     settings = "os", "arch", "compiler", "build_type"
-    options = {"fPIC": [True, False], "dfloat": [True, False]}
-    default_options = {"fPIC": True, "dfloat": False}
+    # (no fPIC: CMakeLists.txt makes rove position-independent however it is built)
+    options = {"dfloat": [True, False]}
+    default_options = {"dfloat": False}
     exports_sources = "CMakeLists.txt", "LICENSE.md", "src/*", "include/*"
     test_package_folder = "tests/test_conan_package"
 
@@ -30,12 +32,10 @@ class RoveConan(ConanFile):
         text = load(self, os.path.join(self.recipe_folder, "CMakeLists.txt"))
         self.version = re.search(r"project\(rove VERSION ([0-9.]+)", text).group(1)
 
-    def config_options(self):
-        if self.settings.os == "Windows":
-            del self.options.fPIC
-
     def validate(self):
         check_min_cppstd(self, 20)
+        if self.options.dfloat and self.settings.compiler == "msvc":
+            raise ConanInvalidConfiguration("rove: no flag is known to keep MSVC from fusing multiply-adds, which dfloat needs")
 
     def layout(self):
         cmake_layout(self)
@@ -57,6 +57,8 @@ class RoveConan(ConanFile):
     def package(self):
         copy(self, "LICENSE.md", self.source_folder, os.path.join(self.package_folder, "licenses"))
         CMake(self).install()
+        # (CMakeDeps writes a package's CMake files from package_info: rove's own would only be in its way)
+        rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "rove")

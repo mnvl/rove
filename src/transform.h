@@ -76,7 +76,7 @@ namespace detail
 template<class T> inline bool
 uniform_scale(vec<3, T> const &s) {
 	using std::abs;
-	T const largest = std::max({abs(s.x), abs(s.y), abs(s.z)});
+	T const largest = (std::max)({abs(s.x), abs(s.y), abs(s.z)});
 	T const tolerance = largest / T(10000);
 	return abs(s.x - s.y) <= tolerance && abs(s.x - s.z) <= tolerance;
 }
@@ -162,9 +162,9 @@ inverse(trs<T> const &t) {
 template<class T> inline ray<3, T>
 unproject_ray(matrix<4, 4, T> const &inverse_view_projection, T ndc_x, T ndc_y)
 {
-	vec<3, T> const near = project_point(inverse_view_projection, vec<3, T>(ndc_x, ndc_y, 0));
-	vec<3, T> const far = project_point(inverse_view_projection, vec<3, T>(ndc_x, ndc_y, 1));
-	return ray<3, T>(near, far - near);
+	vec<3, T> const at_near = project_point(inverse_view_projection, vec<3, T>(ndc_x, ndc_y, 0));
+	vec<3, T> const at_far = project_point(inverse_view_projection, vec<3, T>(ndc_x, ndc_y, 1));
+	return ray<3, T>(at_near, at_far - at_near);
 }
 
 /// @brief From a (u = 0) to b (u = 1): translation and scale lerped, rotation slerped

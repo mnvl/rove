@@ -393,7 +393,7 @@ public:
 			cosine = -cosine;
 		}
 
-		cosine = std::min(T(1), std::max(T(-1), cosine));
+		cosine = (std::min)(T(1), (std::max)(T(-1), cosine));
 		if (cosine >= T(1) - scalar_traits<T>::zero_angle) {
 			linear_ = true;
 			omega_ = 0;

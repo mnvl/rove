@@ -307,7 +307,7 @@ public:
 		octree result(bounds, static_cast<size_t>(leaf_items_threshold), min_subcluster_diagonal_sq);
 
 		std::uint64_t const count = in.template read<std::uint64_t>();
-		if (count > std::numeric_limits<std::uint32_t>::max() ||
+		if (count > (std::numeric_limits<std::uint32_t>::max)() ||
 			count * (sizeof(primitive_type) + sizeof(payload_type)) > bytes.size())
 		{
 			throw std::runtime_error("octree::load: item count out of range");
@@ -656,9 +656,9 @@ private:
 						s.to = -std::numeric_limits<scalar_type>::infinity();
 					}
 				} else if ((d > 0) == upper) {
-					s.from = std::max(s.from, (plane - o) / d);
+					s.from = (std::max)(s.from, (plane - o) / d);
 				} else {
-					s.to = std::min(s.to, (plane - o) / d);
+					s.to = (std::min)(s.to, (plane - o) / d);
 				}
 			}
 			if (s.from <= s.to) {

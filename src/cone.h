@@ -73,7 +73,7 @@ public:
 	{
 		T const cos_abs = abs(cos_half_angle);
 		T const base_radius = (cos_abs > T(0)
-			? range * (sqrt(std::max(T(0), T(1) - cos_half_angle * cos_half_angle)) / cos_abs)
+			? range * (sqrt((std::max)(T(0), T(1) - cos_half_angle * cos_half_angle)) / cos_abs)
 			: std::numeric_limits<T>::infinity());
 		vec_type base_center = apex + direction * range;
 

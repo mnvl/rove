@@ -1250,7 +1250,7 @@ scaled_down(vec<N,T,S> const &v, char const *what, T epsilon)
 	using std::abs;
 	T largest = abs(v.i[0]);
 	for (int n = 1; n < N; ++n)
-		largest = std::max(largest, abs(v.i[n]));
+		largest = (std::max)(largest, abs(v.i[n]));
 	// (with no epsilon only a true zero has no direction: a vector whose square underflows has one, by its largest component)
 	using std::isfinite;
 	if (epsilon > T(0) || !(largest > T(0) && isfinite(largest)))
@@ -1291,7 +1291,7 @@ normalize_or_zero(vec<N,T,S> const &v)
 	// its square underflowed to no length, or overflowed: by its largest component, it has a length.  Zero and NaN stay as they are.
 	T largest = T(0);
 	for (int n = 0; n < N; ++n)
-		largest = std::max(largest, T(abs(v.i[n])));
+		largest = (std::max)(largest, T(abs(v.i[n])));
 	if (!(largest > 0 && isfinite(largest))) {
 		if (abs(l) > 0) t /= l;
 		return t;
@@ -1430,7 +1430,7 @@ all_greater_equal(vec<N,T,S> const &a,vec<N,T,S> const &b)
 
 /// @brief The smaller of a's and b's on each component (a's where they are equal or unordered, as std::min)
 template<int N,class T,class S> inline vec<N,T,S>
-min(vec<N,T,S> const &a,vec<N,T,S> const &b)
+(min)(vec<N,T,S> const &a,vec<N,T,S> const &b)
 {
 	vec<N,T,S> r(a);
 	for (int n = 0; n < N; ++n)
@@ -1440,7 +1440,7 @@ min(vec<N,T,S> const &a,vec<N,T,S> const &b)
 
 /// @brief The larger of a's and b's on each component (a's where they are equal or unordered, as std::max)
 template<int N,class T,class S> inline vec<N,T,S>
-max(vec<N,T,S> const &a,vec<N,T,S> const &b)
+(max)(vec<N,T,S> const &a,vec<N,T,S> const &b)
 {
 	vec<N,T,S> r(a);
 	for (int n = 0; n < N; ++n)

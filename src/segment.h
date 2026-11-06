@@ -58,7 +58,7 @@ public:
 	{
 		// (the cross product is the distance from the line times |v|: the tolerance is one of distance whatever the length of the segment)
 		vec_type u(p - A), v(direction());
-		T const tolerance = scalar_traits<T>::default_epsilon * std::max(T(1), v.length());
+		T const tolerance = scalar_traits<T>::default_epsilon * (std::max)(T(1), v.length());
 		return u.is_collinear(v, tolerance) && u.length_sq() <= v.length_sq() && dot(u, v) >= 0;
 	}
 

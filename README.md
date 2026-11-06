@@ -54,7 +54,7 @@ on single objects (see examples/benchmark.py).
 ## Python
 
 ```bash
-pip install pyrove                                   # from PyPI, once released
+pip install pyrove                                   # from PyPI
 pip install git+https://github.com/mnvl/rove.git     # from source: needs CMake and a C++20 compiler
 ```
 

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2004-2026 Manvel Avetisian
+
 name: Wheels
 
 # A tag publishes; otherwise on demand: gh workflow run Wheels --ref <branch>

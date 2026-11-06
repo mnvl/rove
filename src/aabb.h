@@ -21,9 +21,6 @@
 #include "vec.h"
 #include "matrix.h"
 
-#undef min
-#undef max
-
 namespace rove
 {
 
@@ -118,8 +115,8 @@ public:
 	 */
 	void null() {
 		for (size_t n=0; n<dimensions; n++) {
-			lo.i[n] = +limits_type::max();
-			hi.i[n] = -limits_type::max();
+			lo.i[n] = +(limits_type::max)();
+			hi.i[n] = -(limits_type::max)();
 		}
 	}
 
@@ -338,8 +335,6 @@ auto bounds_of(It first, It last)
 template<class T>
 aabb<3, T> transform_aabb(aabb<3, T> const &box, matrix<4, 4, T> const &m)
 {
-	using std::abs;
-	T const loose = T(1) / T(100000);
 	m.check_affine("rove: transform_aabb by a matrix");
 	if (box.is_empty()) return box;
 	aabb<3, T> r;
@@ -347,8 +342,8 @@ aabb<3, T> transform_aabb(aabb<3, T> const &box, matrix<4, 4, T> const &m)
 		r.lo.i[i] = r.hi.i[i] = m.ij[3][i];
 		for (int j = 0; j < 3; ++j) {
 			T const a = m.ij[j][i] * box.lo.i[j], b = m.ij[j][i] * box.hi.i[j];
-			r.lo.i[i] += std::min(a, b);
-			r.hi.i[i] += std::max(a, b);
+			r.lo.i[i] += (std::min)(a, b);
+			r.hi.i[i] += (std::max)(a, b);
 		}
 	}
 	return r;

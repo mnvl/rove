@@ -155,7 +155,7 @@ public:
 		for (int a : axes_)
 			if (!(std::abs(b.lo.i[a] / cell_size_) < limit && std::abs(b.hi.i[a] / cell_size_) < limit))
 				throw std::out_of_range("hash_grid: an item beyond 2^30 columns from the origin");
-		if (items_.size() >= std::numeric_limits<index_type>::max())
+		if (items_.size() >= (std::numeric_limits<index_type>::max)())
 			throw std::length_error("hash_grid: full");
 
 		index_type const index = index_type(items_.size());
@@ -257,8 +257,8 @@ public:
 			scalar_type ta = (bounds_.lo.i[a] - o) / d, tb = (bounds_.hi.i[a] - o) / d;
 			if (ta > tb)
 				std::swap(ta, tb);
-			t0 = std::max(t0, ta);
-			t1 = std::min(t1, tb);
+			t0 = (std::max)(t0, ta);
+			t1 = (std::min)(t1, tb);
 		}
 		if (t0 > t1)
 			return best;
@@ -269,8 +269,8 @@ public:
 		{
 			scalar_type const o = r.r0.i[k], d = r.a.i[k];
 			scalar_type const a = d == 0 ? o : o + d * t_min, b = d == 0 ? o : o + d * t_max;
-			span.lo.i[k] = std::min(a, b);
-			span.hi.i[k] = std::max(a, b);
+			span.lo.i[k] = (std::min)(a, b);
+			span.hi.i[k] = (std::max)(a, b);
 		}
 
 		cell const first = cell_of(r.apply(t0)), lo = cell_of(bounds_.lo), hi = cell_of(bounds_.hi);
@@ -354,8 +354,8 @@ private:
 		// only the grid's part of the query: keeps the column numbers in range
 		for (int a : axes_)
 		{
-			q.lo.i[a] = std::max(q.lo.i[a], bounds_.lo.i[a]);
-			q.hi.i[a] = std::min(q.hi.i[a], bounds_.hi.i[a]);
+			q.lo.i[a] = (std::max)(q.lo.i[a], bounds_.lo.i[a]);
+			q.hi.i[a] = (std::min)(q.hi.i[a], bounds_.hi.i[a]);
 		}
 		cell const lo = cell_of(q.lo), hi = cell_of(q.hi);
 		auto column = [&](cell const &c, std::vector<index_type> const &items) {
@@ -365,7 +365,7 @@ private:
 				if (!b.test_intersection(q))
 					continue;
 				cell const &first = first_of_[i];
-				if (c.u != std::max(first.u, lo.u) || c.v != std::max(first.v, lo.v))
+				if (c.u != (std::max)(first.u, lo.u) || c.v != (std::max)(first.v, lo.v))
 					continue;
 				if (QueryTraits::intersects(items_[i].primitive, query))
 					f(i);

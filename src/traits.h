@@ -204,11 +204,11 @@ struct spatial_query_traits<triangle<3, T>, cone<3, T>> {
 			return false;
 
 		vec<3, T> const centre = (stored.A + stored.B + stored.C) / T(3);
-		T const radius_sq = std::max({(stored.A - centre).length_sq(), (stored.B - centre).length_sq(), (stored.C - centre).length_sq()});
+		T const radius_sq = (std::max)({(stored.A - centre).length_sq(), (stored.B - centre).length_sq(), (stored.C - centre).length_sq()});
 		vec<3, T> const v = centre - query.apex;
 		T const along = dot(v, axis), across = (v - axis * along).length();
 		// cone::contains squares the cosine: a half-angle of at most a quarter turn
-		T const cos_half = std::abs(query.cos_half_angle), sin_half = std::sqrt(std::max(T(0), 1 - cos_half * cos_half));
+		T const cos_half = std::abs(query.cos_half_angle), sin_half = std::sqrt((std::max)(T(0), 1 - cos_half * cos_half));
 		T const outside = cos_half * across - sin_half * along;      // the centre's distance past the touching plane
 		return outside <= 0 || outside * outside <= radius_sq;
 	}

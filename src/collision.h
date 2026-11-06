@@ -97,7 +97,7 @@ template<int N, class S>
 		S const t2 = (-B - discriminant_sqrt) / (2 * A);
 
 		if (t1 > 0) {
-			if (t2 > 0) ci.time = std::min(t1, t2);
+			if (t2 > 0) ci.time = (std::min)(t1, t2);
 			else ci.time = t1;
 		} else {
 			if (t2 > 0) ci.time = t2;
@@ -235,7 +235,7 @@ template<int N, class T>
 	for (vec_type const *v : {&from.axe.A, &from.axe.B, &to.axe.A, &to.axe.B, &ball.centre, &move})
 		v->check_finite("first_contact: a point or a move");
 
-	T const rate = move.length() + std::max((to.axe.A - from.axe.A).length(), (to.axe.B - from.axe.B).length()) +
+	T const rate = move.length() + (std::max)((to.axe.A - from.axe.A).length(), (to.axe.B - from.axe.B).length()) +
 		abs(to.radius - from.radius);
 	T t = 0;
 	while (true)

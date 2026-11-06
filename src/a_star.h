@@ -343,7 +343,7 @@ private:
 	{
 		if (!goal_directed_) return 0;
 		scalar const dx = scalar(std::abs(p.x - goal_.x)), dy = scalar(std::abs(p.y - goal_.y));
-		return tie_break * min_cell_cost_ * (std::max(dx, dy) + (sqrt2 - 1) * std::min(dx, dy));
+		return tie_break * min_cell_cost_ * ((std::max)(dx, dy) + (sqrt2 - 1) * (std::min)(dx, dy));
 	}
 
 	/// Cheapest f first; of equal f the one further along (larger g), which keeps a search across open ground to the straight band

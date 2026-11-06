@@ -117,7 +117,7 @@ public:
 	friend constexpr bool signbit(dfloat a) { return (std::bit_cast<std::uint32_t>(a.v_) >> 31) != 0; }
 	friend constexpr bool isnan(dfloat a) { return a.v_ != a.v_; }
 	friend constexpr bool isinf(dfloat a) { return abs(a).v_ == std::numeric_limits<float>::infinity(); }
-	friend constexpr bool isfinite(dfloat a) { return abs(a).v_ <= std::numeric_limits<float>::max(); }
+	friend constexpr bool isfinite(dfloat a) { return abs(a).v_ <= (std::numeric_limits<float>::max)(); }
 	friend dfloat floor(dfloat a) { return std::floor(a.v_); }
 	friend dfloat ceil(dfloat a) { return std::ceil(a.v_); }
 	friend dfloat trunc(dfloat a) { return std::trunc(a.v_); }
@@ -165,8 +165,8 @@ class std::numeric_limits<rove::dfloat> : public std::numeric_limits<float>
 	using F = std::numeric_limits<float>;
 
 public:
-	static constexpr rove::dfloat min() noexcept { return F::min(); }
-	static constexpr rove::dfloat max() noexcept { return F::max(); }
+	static constexpr rove::dfloat (min)() noexcept { return (F::min)(); }
+	static constexpr rove::dfloat (max)() noexcept { return (F::max)(); }
 	static constexpr rove::dfloat lowest() noexcept { return F::lowest(); }
 	static constexpr rove::dfloat epsilon() noexcept { return F::epsilon(); }
 	static constexpr rove::dfloat round_error() noexcept { return F::round_error(); }

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2004-2026 Manvel Avetisian
+
 name: CI
 
 # On pull requests where the minutes are free (a public repository), and on demand: gh workflow run CI --ref <branch>
