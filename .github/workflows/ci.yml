@@ -1,0 +1,106 @@
+name: CI
+
+# On demand: gh workflow run CI --ref <branch>
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpp:
+    name: C++ ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-gcc, os: ubuntu-24.04, cc: gcc-13, cxx: g++-13, tests: ON }
+          - { name: linux-clang, os: ubuntu-24.04, cc: clang-18, cxx: clang++-18, tests: ON }
+          - { name: macos, os: macos-15, cc: clang, cxx: clang++, tests: ON }
+          - { name: windows-msvc, os: windows-2022, cc: cl, cxx: cl, tests: OFF }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Boost.Test (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libboost-test-dev
+      - name: Boost.Test (macOS)
+        if: runner.os == 'macOS'
+        run: brew install boost
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DROVE_TESTS=${{ matrix.tests }}
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+          -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        if: matrix.tests == 'ON'
+        run: ctest --test-dir build --build-config Release --output-on-failure
+      - name: Install and use with find_package
+        shell: bash
+        run: |
+          cmake --install build --config Release --prefix "$RUNNER_TEMP/rove"
+          mkdir -p "$RUNNER_TEMP/consumer"
+          printf '#include <rove/vec.h>\nint main() { return rove::dot(rove::vec<3>(1, 0, 0), rove::vec<3>(1, 0, 0)) == 1 ? 0 : 1; }\n' > "$RUNNER_TEMP/consumer/main.cc"
+          printf 'cmake_minimum_required(VERSION 3.15)\nproject(consumer CXX)\nfind_package(rove 3 CONFIG REQUIRED)\nadd_executable(consumer main.cc)\ntarget_link_libraries(consumer PRIVATE rove::rove)\n' > "$RUNNER_TEMP/consumer/CMakeLists.txt"
+          cmake -S "$RUNNER_TEMP/consumer" -B "$RUNNER_TEMP/consumer/build" -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/rove" -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+          cmake --build "$RUNNER_TEMP/consumer/build" --config Release
+
+  python:
+    name: Python ${{ matrix.python }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: pip install ".[test]"
+      - name: Test
+        shell: bash
+        run: cd "$RUNNER_TEMP" && python -m pytest -q -p no:cacheprovider "$GITHUB_WORKSPACE/tests"
+
+  # The ways docs/install.md gives to use rove from C++, each building tests/test_conan_package/ against it
+  consumers:
+    name: Use as ${{ matrix.way }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        way: [submodule, conan, vcpkg]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: rove
+      - name: As a subdirectory (a submodule)
+        if: matrix.way == 'submodule'
+        run: |
+          mkdir app && cp rove/tests/test_conan_package/example.cc app/
+          printf 'cmake_minimum_required(VERSION 3.15)\nproject(app CXX)\nadd_subdirectory(../rove rove)\nadd_executable(rove_example example.cc)\ntarget_link_libraries(rove_example PRIVATE rove::rove)\n' > app/CMakeLists.txt
+          cmake -S app -B app/build -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build app/build
+          app/build/rove_example
+      - name: Conan
+        if: matrix.way == 'conan'
+        run: |
+          pipx install conan
+          conan profile detect
+          conan create rove -s compiler.cppstd=20 --build=missing
+      - name: vcpkg
+        if: matrix.way == 'vcpkg'
+        env:
+          ROVE_SOURCE_DIR: ${{ github.workspace }}/rove
+          VCPKG_KEEP_ENV_VARS: ROVE_SOURCE_DIR
+        run: |
+          mkdir app && cp rove/tests/test_conan_package/CMakeLists.txt rove/tests/test_conan_package/example.cc app/
+          echo '{ "name": "app", "version": "0.0.0", "dependencies": ["rove"] }' > app/vcpkg.json
+          cmake -S app -B app/build -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_OVERLAY_PORTS=$PWD/rove/ports
+          cmake --build app/build
+          app/build/rove_example

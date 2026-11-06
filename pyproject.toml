@@ -1,0 +1,61 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind==2.4.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pyrove"
+version = "3.0.0"
+description = "Math and geometry for games, robotics and simulation: vectors, matrices, quaternions, shapes, collisions and spatial indices"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Manvel Avetisian" }]
+license = "MIT"
+license-files = ["LICENSE.md"]
+dependencies = ["numpy"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Free Threading :: 2 - Beta",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries",
+]
+keywords = ["math", "geometry", "3d", "vector", "matrix", "quaternion", "collision", "octree", "pathfinding", "game-development", "robotics"]
+
+[project.urls]
+Homepage = "https://github.com/mnvl/rove"
+Repository = "https://github.com/mnvl/rove"
+Changelog = "https://github.com/mnvl/rove/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.version = ">=3.15"
+build-dir = "build/{wheel_tag}"
+wheel.packages = ["pyrove"]
+# (anchored: an unanchored "src" would take build/*/src too)
+sdist.include = ["/src", "/include", "/python", "/pyrove/*.py", "/CMakeLists.txt", "/LICENSE.md", "/README.md", "/CHANGELOG.md"]
+sdist.exclude = ["/build", "__pycache__", "/tests", "/examples", "/docs", "/.github", "/ports"]
+
+[tool.scikit-build.cmake.define]
+ROVE_PYTHON = "ON"
+ROVE_TESTS = "OFF"
+ROVE_INSTALL = "OFF"
+ROVE_LTO = "OFF"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.cibuildwheel]
+build = "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp314t-*"
+skip = "*-musllinux_i686 *-win32 *-manylinux_i686"
+test-requires = ["pytest", "numpy"]
+test-command = "pytest -q {project}/tests"

@@ -1,0 +1,6 @@
+rove provides CMake targets:
+
+  find_package(rove 3 CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE rove::rove)
+
+  #include <rove/vec.h>
