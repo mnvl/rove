@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <sstream>
@@ -54,15 +55,16 @@ void bind_ray2(nb::module_ &m, char const *name) {
 		.def("test_intersection", &Ray::test_intersection,
 			 nb::arg("other"), nb::arg("epsilon") = rove::scalar_traits<T>::default_epsilon,
 			 "Whether the two lines meet: distance(other) < epsilon")
-		.def("__repr__", [](Ray const &r) {
-			std::ostringstream ss;
-			ss << "ray2(r0=" << r.r0 << ", a=" << r.a << ")";
+		.def("__repr__", [name](Ray const &r) {
+			bind_text::repr_stream ss;
+			ss << name << "(r0=" << r.r0 << ", a=" << r.a << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Ray const &r) {
 			return nb::make_tuple(r.r0, r.a);
 		})
 		.def("__setstate__", [](Ray &r, nb::tuple t) {
+			check_state(t, 2, "Ray.__setstate__");
 			r.r0 = nb::cast<Vec2>(t[0]);
 			r.a  = nb::cast<Vec2>(t[1]);
 		});
@@ -105,15 +107,16 @@ void bind_ray3(nb::module_ &m, char const *name) {
 		.def("test_intersection", &Ray::test_intersection,
 			 nb::arg("other"), nb::arg("epsilon") = rove::scalar_traits<T>::default_epsilon,
 			 "Whether the two lines meet: distance(other) < epsilon")
-		.def("__repr__", [](Ray const &r) {
-			std::ostringstream ss;
-			ss << "ray3(r0=" << r.r0 << ", a=" << r.a << ")";
+		.def("__repr__", [name](Ray const &r) {
+			bind_text::repr_stream ss;
+			ss << name << "(r0=" << r.r0 << ", a=" << r.a << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Ray const &r) {
 			return nb::make_tuple(r.r0, r.a);
 		})
 		.def("__setstate__", [](Ray &r, nb::tuple t) {
+			check_state(t, 2, "Ray.__setstate__");
 			r.r0 = nb::cast<Vec3>(t[0]);
 			r.a  = nb::cast<Vec3>(t[1]);
 		});

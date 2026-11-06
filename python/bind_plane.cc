@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <sstream>
@@ -77,15 +78,16 @@ void bind_plane(nb::module_ &m, char const *name) {
 			 },
 			 nb::arg("point"), nb::arg("epsilon") = rove::scalar_traits<T>::default_epsilon,
 			 "Classify point position relative to plane (returns int: 1=positive, 2=intersects, 3=negative)")
-		.def("__repr__", [](Plane const &p) {
-			std::ostringstream ss;
-			ss << "plane(A=" << p.A << ", B=" << p.B << ", C=" << p.C << ", D=" << p.D << ")";
+		.def("__repr__", [name](Plane const &p) {
+			bind_text::repr_stream ss;
+			ss << name << "(A=" << p.A << ", B=" << p.B << ", C=" << p.C << ", D=" << p.D << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Plane const &p) {
 			return nb::make_tuple(p.A, p.B, p.C, p.D);
 		})
 		.def("__setstate__", [](Plane &p, nb::tuple t) {
+			check_state(t, 4, "Plane.__setstate__");
 			p.A = nb::cast<T>(t[0]);
 			p.B = nb::cast<T>(t[1]);
 			p.C = nb::cast<T>(t[2]);

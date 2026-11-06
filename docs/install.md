@@ -30,6 +30,16 @@ v = pyrove.vec3(1, 2, 3)
 print(pyrove.dot(v, v))   # 14.0
 ```
 
+### An extension of your own that passes rove types
+
+nanobind shares types only between modules with the same ABI tag, which comes from the compiler that built them. An extension compiled here
+gets a `TypeError` on every `pyrove.vec3` it takes or returns against a PyPI wheel built by another compiler (or another nanobind). Build
+pyrove with the same toolchain as the extension, and it works:
+
+```bash
+pip install --no-binary pyrove pyrove
+```
+
 ## C++: a git submodule
 
 ```bash

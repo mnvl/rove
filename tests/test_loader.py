@@ -32,3 +32,39 @@ def test_windows_extension_names_carry_the_same_tags():
     import pyrove
     built = [Path("pyrove_bind.cp313-win_amd64.pyd"), Path("pyrove_bind.cp314t-win_amd64.pyd")]
     assert pyrove._guess_python_tags(built) == ["cpython-313", "cpython-314t"]
+
+
+# --- what the package lists ---------------------------------------------------
+
+def test_dir_lists_the_api_and_not_the_loaders_imports():
+    import pyrove
+    listed = dir(pyrove)
+    assert "vec3" in listed and "dot" in listed and "abs" in listed and "__version__" in listed
+    for internal in ("ModuleType", "Path", "annotations", "importlib", "os", "re", "sys", "pyrove_bind"):
+        assert internal not in listed
+
+
+def test_the_package_ships_its_types():
+    import pyrove
+    package = Path(pyrove.__file__).parent
+    assert (package / "py.typed").exists()
+    assert (package / "__init__.pyi").exists()
+    stub = (package / "pyrove_bind.pyi").read_text(encoding="utf-8")
+    # (regenerate with nanobind's stubgen.py when the bindings change: every public name of the module has to be in it)
+    missing = [name for name in pyrove.__all__ if f"class {name}" not in stub and f"def {name}(" not in stub and f"{name}:" not in stub]
+    assert missing == []
+
+
+def test_every_public_class_says_what_it_is():
+    import inspect
+    import pyrove
+    missing = [name for name in pyrove.__all__ if inspect.isclass(getattr(pyrove, name)) and not (getattr(pyrove, name).__doc__ or "").strip()]
+    assert missing == []
+
+
+def test_the_version_is_the_projects():
+    import re
+    import pyrove
+    root = Path(__file__).resolve().parents[1]
+    text = (root / "pyproject.toml").read_text(encoding="utf-8")
+    assert pyrove.__version__ == re.search(r'^version = "(.*)"$', text, flags=re.M).group(1)

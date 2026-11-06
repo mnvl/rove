@@ -415,6 +415,22 @@ public:
 		q2_.scale(inv_sin_omega);
 	}
 
+	/// How many numbers save_state() writes
+	static constexpr size_t state_size = 10;
+
+	/// What setup() left, in numbers, for load_state() to take back exactly (setup() on the ends would round them again)
+	void save_state(T *out) const {
+		T const values[state_size] = {q1_.x, q1_.y, q1_.z, q1_.w, q2_.x, q2_.y, q2_.z, q2_.w, omega_, T(linear_ ? 1 : 0)};
+		for (size_t k = 0; k < state_size; ++k) out[k] = values[k];
+	}
+
+	void load_state(T const *in) {
+		q1_ = quaternion<T>(in[0], in[1], in[2], in[3]);
+		q2_ = quaternion<T>(in[4], in[5], in[6], in[7]);
+		omega_ = in[8];
+		linear_ = in[9] != T(0);
+	}
+
 	/**
 	 * @brief Interpolate between quaternions
 	 * @param t Interpolation parameter [0,1], where 0=start, 1=end

@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <sstream>
@@ -37,8 +38,13 @@ void bind_trs(nb::module_ &m, char const *name) {
 		.def("__mul__", [](Trs const &a, Trs const &b) { return a * b; },
 			"a then b's parent: the matrices' product, where a's scale is uniform or b does not turn (a shear otherwise: "
 			"ValueError)")
+		.def("__getstate__", [](Trs const &t) { return nb::make_tuple(t.translation, t.rotation, t.scale); })
+		.def("__setstate__", [](Trs &t, nb::tuple state) {
+			check_state(state, 3, "trs.__setstate__");
+			new (&t) Trs(nb::cast<Vec3>(state[0]), nb::cast<Quat>(state[1]), nb::cast<Vec3>(state[2]));
+		})
 		.def("__repr__", [name](Trs const &t) {
-			std::ostringstream ss;
+			bind_text::repr_stream ss;
 			ss << name << "(translation=" << t.translation << ", rotation=(" << t.rotation.x << ", " << t.rotation.y << ", "
 			   << t.rotation.z << ", " << t.rotation.w << "), scale=" << t.scale << ")";
 			return ss.str();

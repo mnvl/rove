@@ -14,6 +14,8 @@
 #include <cstddef>
 #include <initializer_list>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <stdexcept>
 #include <string>
 
@@ -44,10 +46,11 @@ nb::ndarray<nb::numpy, V> owned(std::unique_ptr<V[]> data, std::initializer_list
  *        run meanwhile; none may change the arrays or what is traced)
  *
  * std::invalid_argument for origins and directions of different lengths, a max_distance negative or NaN, and a row that is no
- * ray (NaN, infinite, a direction of no length), which it names.
+ * ray (NaN, infinite, a direction of no length), which it names.  `lock`, where given, is held for reading over the rays.
  */
 template<class T, class F>
-void each_ray(char const *what, rows3<T> const &origins, rows3<T> const &directions, T max_distance, F &&trace)
+void each_ray(char const *what, rows3<T> const &origins, rows3<T> const &directions, T max_distance, F &&trace,
+	std::shared_mutex *lock = nullptr)
 {
 	if (origins.shape(0) != directions.shape(0))
 		throw std::invalid_argument(std::string(what) + ": origins and directions must have the same number of rows (" +
@@ -57,6 +60,9 @@ void each_ray(char const *what, rows3<T> const &origins, rows3<T> const &directi
 	size_t const n = origins.shape(0);
 	T const *const o = origins.data(), *const d = directions.data();
 	nb::gil_scoped_release release;
+	// (taken without the GIL: a thread that holds the lock may be waiting for nothing else but its turn to finish)
+	std::shared_lock<std::shared_mutex> held;
+	if (lock) held = std::shared_lock<std::shared_mutex>(*lock);
 	for (size_t i = 0; i < n; ++i) {
 		rove::ray<3, T> r;
 		try {

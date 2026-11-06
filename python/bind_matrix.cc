@@ -6,7 +6,9 @@
  * @brief Python bindings for matrix classes (mat3, mat4)
  */
 
+#include <cstddef>
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/ndarray.h>
@@ -20,6 +22,25 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
+namespace
+{
+
+/// SingularMatrixError, a ValueError as every other refusal is, and a RuntimeError as Mat.inverse() raised before
+void raise_singular()
+{
+	PyErr_SetString(singular_matrix_error(), "The matrix is singular");
+	throw nb::python_error();
+}
+
+/// A column or row of a 4 x 4, or IndexError: the C++ has no check of its own, and these took any index
+std::size_t checked_line(std::size_t index)
+{
+	if (index >= 4) throw nb::index_error("A column or row is 0 to 3");
+	return index;
+}
+
+}
+
 template<class T>
 void bind_matrix3(nb::module_ &m, char const *name) {
 	using Mat = rove::matrix<3, 3, T>;
@@ -29,7 +50,7 @@ void bind_matrix3(nb::module_ &m, char const *name) {
 
 	nb::class_<Mat>(m, name)
 		.def(nb::init<>())
-		.def_static("from_numpy", [](nb::ndarray<T, nb::shape<3, 3>> arr) {
+		.def_static("from_numpy", [](nb::ndarray<T const, nb::shape<3, 3>> arr) {
 			Mat result;
 			for (int row = 0; row < 3; row++) {
 				for (int col = 0; col < 3; col++) {
@@ -83,10 +104,10 @@ void bind_matrix3(nb::module_ &m, char const *name) {
 		.def("inverse", [](Mat const &m) {
 			Mat result;
 			if (!m.inverse(result)) {
-				throw std::runtime_error("Matrix is singular");
+				raise_singular();
 			}
 			return result;
-		}, "Return inverse matrix")
+		}, "The inverse; SingularMatrixError, a ValueError, for a singular matrix")
 		.def("transpose", [](Mat const &m) {
 			Mat result;
 			m.transpose(result);
@@ -119,9 +140,9 @@ void bind_matrix3(nb::module_ &m, char const *name) {
 			result /= k;
 			return result;
 		})
-		.def("__repr__", [](Mat const &m) {
-			std::ostringstream ss;
-			ss << "mat3([";
+		.def("__repr__", [name](Mat const &m) {
+			bind_text::repr_stream ss;
+			ss << name << "([";
 			for (int i = 0; i < 3; i++) {
 				ss << "[";
 				for (int j = 0; j < 3; j++) {
@@ -153,6 +174,7 @@ void bind_matrix3(nb::module_ &m, char const *name) {
 				m.ij[2][0], m.ij[2][1], m.ij[2][2]);
 		})
 		.def("__setstate__", [](Mat &m, nb::tuple t) {
+			check_state(t, 9, "Mat.__setstate__");
 			m.ij[0][0]=nb::cast<T>(t[0]); m.ij[0][1]=nb::cast<T>(t[1]); m.ij[0][2]=nb::cast<T>(t[2]);
 			m.ij[1][0]=nb::cast<T>(t[3]); m.ij[1][1]=nb::cast<T>(t[4]); m.ij[1][2]=nb::cast<T>(t[5]);
 			m.ij[2][0]=nb::cast<T>(t[6]); m.ij[2][1]=nb::cast<T>(t[7]); m.ij[2][2]=nb::cast<T>(t[8]);
@@ -168,7 +190,7 @@ void bind_matrix4(nb::module_ &m, char const *name) {
 
 	nb::class_<Mat>(m, name)
 		.def(nb::init<>())
-		.def_static("from_numpy", [](nb::ndarray<T, nb::shape<4, 4>> arr) {
+		.def_static("from_numpy", [](nb::ndarray<T const, nb::shape<4, 4>> arr) {
 			Mat result;
 			for (int row = 0; row < 4; row++) {
 				for (int col = 0; col < 4; col++) {
@@ -229,19 +251,22 @@ void bind_matrix4(nb::module_ &m, char const *name) {
 		.def("inverse", [](Mat const &m) {
 			Mat result;
 			if (!m.inverse(result)) {
-				throw std::runtime_error("Matrix is singular");
+				raise_singular();
 			}
 			return result;
-		}, "Return inverse matrix")
+		}, "The inverse; SingularMatrixError, a ValueError, for a singular matrix")
 		.def("transpose", [](Mat const &m) {
 			Mat result;
 			m.transpose(result);
 			return result;
 		}, "Return transposed matrix")
 		.def("transpose_inplace", &Mat::transpose_inplace, "Transpose matrix in place")
-		.def("column", &Mat::column, nb::arg("index"), "Get column as vec4")
-		.def("projected_column", &Mat::projected_column, nb::arg("index"), "Get column as vec3")
-		.def("projected_row", &Mat::projected_row, nb::arg("index"), "Get row as vec3")
+		.def("column", [](Mat const &m, std::size_t index) { return m.column(checked_line(index)); }, nb::arg("index"),
+			"Column 0 to 3 as a vec4; IndexError past them")
+		.def("projected_column", [](Mat const &m, std::size_t index) { return m.projected_column(checked_line(index)); }, nb::arg("index"),
+			"Column 0 to 3 as a vec3; IndexError past them")
+		.def("projected_row", [](Mat const &m, std::size_t index) { return m.projected_row(checked_line(index)); }, nb::arg("index"),
+			"Row 0 to 3 as a vec3; IndexError past them")
 		.def("__imul__", nb::overload_cast<T>(&Mat::operator*=), nb::arg("k"), nb::rv_policy::none)
 		.def("__imul__", nb::overload_cast<Mat const &>(&Mat::operator*=), nb::arg("m"), nb::rv_policy::none)
 		.def("__itruediv__", &Mat::operator/=, nb::arg("k"), nb::rv_policy::none)
@@ -269,9 +294,9 @@ void bind_matrix4(nb::module_ &m, char const *name) {
 			result /= k;
 			return result;
 		})
-		.def("__repr__", [](Mat const &m) {
-			std::ostringstream ss;
-			ss << "mat4([";
+		.def("__repr__", [name](Mat const &m) {
+			bind_text::repr_stream ss;
+			ss << name << "([";
 			for (int i = 0; i < 4; i++) {
 				ss << "[";
 				for (int j = 0; j < 4; j++) {
@@ -304,6 +329,7 @@ void bind_matrix4(nb::module_ &m, char const *name) {
 				m.ij[3][0], m.ij[3][1], m.ij[3][2], m.ij[3][3]);
 		})
 		.def("__setstate__", [](Mat &m, nb::tuple t) {
+			check_state(t, 16, "Mat.__setstate__");
 			m.ij[0][0]=nb::cast<T>(t[0]);  m.ij[0][1]=nb::cast<T>(t[1]);  m.ij[0][2]=nb::cast<T>(t[2]);  m.ij[0][3]=nb::cast<T>(t[3]);
 			m.ij[1][0]=nb::cast<T>(t[4]);  m.ij[1][1]=nb::cast<T>(t[5]);  m.ij[1][2]=nb::cast<T>(t[6]);  m.ij[1][3]=nb::cast<T>(t[7]);
 			m.ij[2][0]=nb::cast<T>(t[8]);  m.ij[2][1]=nb::cast<T>(t[9]);  m.ij[2][2]=nb::cast<T>(t[10]); m.ij[2][3]=nb::cast<T>(t[11]);

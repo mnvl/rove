@@ -88,9 +88,10 @@ def main():
     # Plane
     plane = pyrove.plane(pyrove.vec3(0, 0, 0), pyrove.vec3(0, 1, 0))
     print(f"\nPlane at origin with normal (0,1,0)")
-    if plane.test_intersection(ray):
-        t = plane.trace(ray)
-        hit_point = ray.apply(t)
+    downward = pyrove.ray3(pyrove.vec3(1, 2, 3), pyrove.vec3(0, -1, 0))
+    if plane.test_intersection(downward):
+        t = plane.trace(downward)
+        hit_point = downward.apply(t)
         print(f"  Ray intersects plane at t={t:.2f}, point={hit_point}")
 
     # Triangle

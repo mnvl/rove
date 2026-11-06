@@ -188,6 +188,17 @@ public:
 
 	bool operator==(pcg32 const &other) const = default;
 
+	/// What the generator is: state() and increment() hand it over and from_state() takes it back, exactly
+	std::uint64_t state() const { return state_; }
+	std::uint64_t increment() const { return increment_; }
+	static pcg32 from_state(std::uint64_t state, std::uint64_t increment)
+	{
+		pcg32 made(0);
+		made.state_ = state;
+		made.increment_ = increment;
+		return made;
+	}
+
 private:
 	/// A whole number in [0, span], each as likely as the others
 	std::uint64_t whole_up_to(std::uint64_t span)

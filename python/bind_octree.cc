@@ -8,14 +8,18 @@
 
 #include "python_bindings.h"
 #include "bind_rays.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/pair.h>
 
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -29,6 +33,21 @@
 
 namespace nb = nanobind;
 using namespace nb::literals;
+
+namespace
+{
+
+/// The lock of a tree: writers (insert, build) one at a time and alone, readers (queries) together.  A tree's users here block on it, so
+/// another thread's use of a tree waits while it builds rather than reading what is being rebuilt; and it is held without the GIL where
+/// the work is done without it, so a thread that holds the GIL and waits here never holds up the one that holds the lock.  (By the
+/// tree's address, in a fixed table: a bound class of its own would stop being the C++ octree that other bindings can share.)
+std::shared_mutex &lock_of(void const *tree)
+{
+	static std::shared_mutex locks[64];
+	return locks[(reinterpret_cast<std::uintptr_t>(tree) >> 6) % 64];
+}
+
+}
 
 template<class T>
 void bind_octree_triangle3(nb::module_ &m, char const *name)
@@ -45,32 +64,75 @@ void bind_octree_triangle3(nb::module_ &m, char const *name)
 		.def(nb::init<AABB const &, std::size_t, T>(),
 			"bounds"_a, "leaf_items_threshold"_a = 16,
 			"min_subcluster_diagonal_sq"_a = T(1e-5))
-		.def("insert", &Octree::insert, "triangle"_a, "payload"_a)
-		.def("build", &Octree::build, nb::call_guard<nb::gil_scoped_release>(),
-			"Builds the tree, letting other Python threads run meanwhile (none may use this tree until it returns)")
-		.def_prop_ro("size", &Octree::size)
+		.def("insert", [](Octree &self, Triangle const &triangle, int payload) {
+				nb::gil_scoped_release release;
+				std::unique_lock lock(lock_of(&self));
+				self.insert(triangle, payload);
+			}, "triangle"_a, "payload"_a, "Adds an item; other threads' use of the tree waits for it")
+		.def("build", [](Octree &self) {
+				nb::gil_scoped_release release;
+				std::unique_lock lock(lock_of(&self));
+				self.build();
+			},
+			"Builds the tree, letting other Python threads run meanwhile: one that uses this tree waits until it returns.  ValueError for "
+			"items in a box that is empty or not finite")
+		.def_prop_ro("size", [](Octree const &self) {
+				nb::gil_scoped_release release;
+				std::shared_lock lock(lock_of(&self));
+				return self.size();
+			})
+		.def("__repr__", [name](Octree const &self) {
+				nb::gil_scoped_release release;
+				std::shared_lock lock(lock_of(&self));
+				bind_text::repr_stream ss;
+				ss << name << "(lo=" << self.bounds().lo << ", hi=" << self.bounds().hi << ", size=" << self.size() << ", "
+				   << (self.is_built() ? "built" : "not built") << ")";
+				return ss.str();
+			})
 		.def_prop_ro("bounds", &Octree::bounds)
 		// Pickled as octree::save() bytes: the built tree, nodes and all, so
 		// a tree built in one process is loaded in another without build().
+		// One not built yet is built in a copy for it: it comes back built.
 		.def("__getstate__",
 			[](Octree const &self) {
-				std::string const bytes = self.save();
+				std::string bytes;
+				{
+					nb::gil_scoped_release release;
+					std::shared_lock lock(lock_of(&self));
+					if (self.is_built()) {
+						bytes = self.save();
+					} else {
+						Octree built = self.copy_unbuilt();
+						built.build();
+						bytes = built.save();
+					}
+				}
 				return nb::bytes(bytes.data(), bytes.size());
 			})
+		.def("__reduce_ex__", [](nb::handle self, int) {
+				return nb::make_tuple(nb::module_::import_("copyreg").attr("__newobj__"), nb::make_tuple(self.type()),
+					self.attr("__getstate__")());
+			}, "protocol"_a)
 		.def("__setstate__",
 			[](Octree &self, nb::bytes state) {
 				new (&self) Octree(Octree::load(std::string_view(state.c_str(), state.size())));
 			}, "state"_a)
 		.def("query_aabb",
 			[](Octree const &self, AABB const &query) {
+				nb::gil_scoped_release release;
+				std::shared_lock lock(lock_of(&self));
 				return self.template query_intersection<AABB>(query);
 			}, "bounds"_a)
 		.def("query_sphere",
 			[](Octree const &self, Sphere const &query) {
+				nb::gil_scoped_release release;
+				std::shared_lock lock(lock_of(&self));
 				return self.template query_intersection<Sphere>(query);
 			}, "sphere"_a)
 		.def("query_aabb_items",
 			[](Octree const &self, AABB const &query) {
+				nb::gil_scoped_release release;
+				std::shared_lock lock(lock_of(&self));
 				auto items = self.template query_intersection_items<AABB>(query);
 				std::vector<std::pair<Triangle, int>> result;
 				result.reserve(items.size());
@@ -81,6 +143,8 @@ void bind_octree_triangle3(nb::module_ &m, char const *name)
 			}, "bounds"_a)
 		.def("query_sphere_items",
 			[](Octree const &self, Sphere const &query) {
+				nb::gil_scoped_release release;
+				std::shared_lock lock(lock_of(&self));
 				auto items = self.template query_intersection_items<Sphere>(query);
 				std::vector<std::pair<Triangle, int>> result;
 				result.reserve(items.size());
@@ -91,6 +155,8 @@ void bind_octree_triangle3(nb::module_ &m, char const *name)
 			}, "sphere"_a)
 		.def("query_line_items",
 			[](Octree const &self, Line const &query) {
+				nb::gil_scoped_release release;
+				std::shared_lock lock(lock_of(&self));
 				auto items = self.template query_intersection_items<Line>(query);
 				std::vector<std::pair<Triangle, int>> result;
 				result.reserve(items.size());
@@ -103,40 +169,50 @@ void bind_octree_triangle3(nb::module_ &m, char const *name)
 			"(not an AABB approximation), tree-pruned.")
 		.def("raycast_batch",
 			[](Octree const &self, Vec3 const &origin,
-			   nb::ndarray<T, nb::ndim<2>, nb::c_contig, nb::device::cpu> directions,
+			   nb::ndarray<T const, nb::ndim<2>, nb::c_contig, nb::device::cpu> directions,
 			   T max_distance) {
 				if (directions.shape(1) != 3) {
 					throw std::invalid_argument("directions must have shape (N, 3)");
 				}
+				if (!(max_distance >= 0)) {
+					throw std::invalid_argument("OctreeTriangle3.raycast_batch: a max_distance of " + std::to_string(max_distance));
+				}
 				size_t const n = directions.shape(0);
 				T const *in = directions.data();
-				T *out = new T[n];
+				std::unique_ptr<T[]> out(new T[n]);
 				{
 					// the rays traced in C++ alone: other Python threads run meanwhile
 					nb::gil_scoped_release release;
+					std::shared_lock lock(lock_of(&self));
 					for (size_t i = 0; i < n; ++i) {
 						Vec3 const dir(in[3 * i], in[3 * i + 1], in[3 * i + 2]);
-						rove::ray<3, T> const r(origin, dir * max_distance);
-						auto const hit = self.trace(r, T(0), T(1));
-						// time is a share of r.a: the distance is that share of its length
-						out[i] = hit.happened ? hit.time * r.a.length() : std::numeric_limits<T>::infinity();
+						// out to max_distance as a distance: scaling the direction by it would overflow for a large one
+						T const speed = dir.length();
+						if (!(speed > T(0))) {
+							out[i] = std::numeric_limits<T>::infinity();
+							continue;
+						}
+						auto const hit = self.trace(rove::ray<3, T>(origin, dir), T(0), max_distance / speed);
+						out[i] = hit.happened ? hit.time * speed : std::numeric_limits<T>::infinity();
 					}
 				}
-				size_t shape[1] = {n};
-				nb::capsule deleter(out, [](void *p) noexcept { delete[] static_cast<T*>(p); });
-				return nb::ndarray<nb::numpy, T, nb::ndim<1>>(out, 1, shape, deleter);
+				return bind_rays::owned(std::move(out), {n});
 			}, "origin"_a, "directions"_a, "max_distance"_a,
-			"Nearest-hit distance for every ray in `directions` (shape (N,3), "
-			"shared `origin`, expected-unit direction vectors scaled by "
-			"`max_distance` internally). One octree traversal per ray, all "
+			"Nearest-hit distance for every ray in `directions` (shape (N,3), of any length, read-only or not; "
+			"numbers of another type are rounded to float32), from a shared `origin`, within max_distance (may be inf; "
+			"ValueError if negative). One octree traversal per ray, all "
 			"looped in C++ -- a single Python call per octree per frame. "
 			"Returns an (N,) float array; inf where a ray hits nothing within "
-			"max_distance. Other Python threads run while it traces (none may "
-			"change the directions or the tree meanwhile).")
+			"max_distance or has no direction. Other Python threads run while it traces (none may "
+			"change the directions meanwhile; one that changes the tree waits).")
 		.def("raycast_batch_hits",
 			[](Octree const &self, bind_rays::rows3<T> origins, bind_rays::rows3<T> directions, T max_distance) {
-				if (!self.is_built()) {
-					throw std::logic_error("OctreeTriangle3.raycast_batch_hits: build() the tree first");
+				{
+					nb::gil_scoped_release release;
+					std::shared_lock lock(lock_of(&self));
+					if (!self.is_built()) {
+						throw std::logic_error("OctreeTriangle3.raycast_batch_hits: build() the tree first");
+					}
 				}
 				size_t const n = origins.shape(0);
 				std::unique_ptr<T[]> distance(new T[n]), normal(new T[3 * n]);
@@ -157,7 +233,7 @@ void bind_octree_triangle3(nb::module_ &m, char const *name)
 						for (int k = 0; k < 3; ++k) {
 							normal[3 * i + k] = hit.normal.i[k];
 						}
-					});
+					}, &lock_of(&self));
 				return nb::make_tuple(bind_rays::owned(std::move(distance), {n}), bind_rays::owned(std::move(item), {n}),
 					bind_rays::owned(std::move(payload), {n}), bind_rays::owned(std::move(normal), {n, 3}));
 			}, "origins"_a.noconvert(), "directions"_a.noconvert(), "max_distance"_a,

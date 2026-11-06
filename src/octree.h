@@ -85,7 +85,7 @@ public:
 		leaf_items_threshold_(leaf_items_threshold),
 		min_subcluster_diagonal_sq_(min_subcluster_diagonal_sq)
 	{
-		assert(all_less_equal(bounds.lo, bounds.hi));
+		// (a box that holds nothing is no error until build() has items to put in it)
 	}
 
 	void clear()
@@ -121,6 +121,10 @@ public:
 
 	void build()
 	{
+		// A box that is empty or infinite never gets smaller: items in it have nowhere to be put
+		if (!items_.empty() && (bounds_.is_empty() || !is_finite(bounds_.lo) || !is_finite(bounds_.hi)))
+			throw std::invalid_argument("octree::build: items in a box that is empty or not finite");
+
 		root_.reset(new node(bounds_));
 
 		std::vector<size_t> indices(items_.size());
@@ -128,7 +132,15 @@ public:
 			indices[i] = i;
 		}
 
-		build_node(*root_, indices);
+		build_node(*root_, indices, 0);
+	}
+
+	/// @brief A new tree of the same items and settings, not built: the tree itself holds nodes that cannot be copied
+	octree copy_unbuilt() const
+	{
+		octree made(bounds_, leaf_items_threshold_, min_subcluster_diagonal_sq_);
+		made.items_ = items_;
+		return made;
 	}
 
 	aabb_type const &bounds() const { return bounds_; }
@@ -526,7 +538,11 @@ private:
 		return 2;
 	}
 
-	void build_node(node &current, std::vector<size_t> const &indices)
+	/// Past this many halvings a cell is below what its scalar can tell, and dividing it further only recurses: items that no division
+	/// separates (coincident ones where min_subcluster_diagonal_sq is 0, NaNs anywhere) stay in the leaf they reach.
+	static constexpr int max_depth = 48;
+
+	void build_node(node &current, std::vector<size_t> const &indices, int depth)
 	{
 		current.item_indices.clear();
 
@@ -535,7 +551,8 @@ private:
 		}
 
 		if (indices.size() < leaf_items_threshold_ ||
-			current.bounds.diagonal().length_sq() < min_subcluster_diagonal_sq_)
+			current.bounds.diagonal().length_sq() < min_subcluster_diagonal_sq_ ||
+			depth >= max_depth)
 		{
 			current.item_indices = indices;
 			return;
@@ -545,6 +562,11 @@ private:
 
 		for (size_t item_index : indices) {
 			aabb_type primitive_bounds = traits_type::bounds(items_[item_index].primitive);
+			// A NaN has no place among the children: it stays here (a query's tests then answer for it, and are false)
+			if (primitive_bounds.is_empty()) {
+				current.item_indices.push_back(item_index);
+				continue;
+			}
 			unsigned subclusters[subclusters_count];
 			size_t nsubclusters = subclusters_by_aabb(current.centre, primitive_bounds, subclusters);
 
@@ -574,7 +596,7 @@ private:
 			}
 
 			current.children[i].reset(new node(subcluster_bounds(current.bounds, static_cast<unsigned>(i))));
-			build_node(*current.children[i], child_indices[i]);
+			build_node(*current.children[i], child_indices[i], depth + 1);
 		}
 	}
 
