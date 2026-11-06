@@ -47,7 +47,22 @@ public:
 	}
 
 	/// @brief The box around the capsule
-	aabb<N, T> bounds() const;
+	aabb<N, T> bounds() const
+	{
+		vec_type diagonal;
+		diagonal.set_all(radius);
+
+		aabb<N, T> bounds;
+		bounds.lo = bounds.hi = axe.A;
+		bounds.extend(axe.B);
+
+		bounds.extend(axe.A - diagonal);
+		bounds.extend(axe.A + diagonal);
+
+		bounds.extend(axe.B - diagonal);
+		bounds.extend(axe.B + diagonal);
+		return bounds;
+	}
 
 	bool test_intersection(triangle<dimensions, T> const &triangle) const;
 	bool test_intersection(capsule const &other) const;

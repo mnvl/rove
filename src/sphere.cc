@@ -14,22 +14,11 @@ namespace rove
 
 template<int N, class T> bool sphere<N, T>::test_intersection(ray<N, T> const &r) const
 {
-	// |x-r0|=R
-	// x=x0+a*t
-	// |x0+a*t-r0|=R
-	// (a*t+x0-r0,a*t+x0-r0)=R^2
-	// (a*t,a*t+x0-r0)+(x0-r0,a*t+x0-r0)=R^2
-	// (a,a)*t^2+(a,x0-r0)*t+(a,x0-r0)*t+(x0-r0,x0-r0)=R^2
-	// (a,a)*t^2+(a,x0-r0)*2*t+(x0-r0,x0-r0)-R^2=0
-	// A=(a,a)
-	// B=(a,x0-r0)*2
-	// C=(x0-r0,x0-r0)-R
-
-	T A = r.a.length_sq();
-	T B = 2 * dot(r.a, r.r0 - centre);
-	T C = (r.r0 - centre).length_sq() - radius * radius;
-
-	return B * B - 4 * A * C >= 0;
+	// The nearest point of the ray to the centre: at its origin when it points away or has no direction.
+	vec_type const to_centre = centre - r.r0;
+	T const along = dot(r.a, to_centre), a_sq = r.a.length_sq();
+	vec_type const nearest = (along > T(0) && a_sq > T(0)) ? to_centre - r.a * (along / a_sq) : to_centre;
+	return nearest.length_sq() <= square(radius);
 }
 
 template<int N, class T> int
@@ -46,13 +35,16 @@ sphere<N,T>::query_intersection(ray<N, T> const &r, vec_type &p1, vec_type &p2) 
 	T B = T(2) * dot(r.a, delta);
 	T C = delta.length_sq() - square(radius);
 
+	if (!(A > T(0))) return 0;          // no direction: no line to cross
+
 	T discriminant = square(B) - 4 * A * C;
 
 	if (discriminant < 0) {
-		return false;
+		return 0;
 	}
 
-	if (discriminant < scalar_traits<T>::zero_length_sq) {
+	// (the discriminant is 4 A (R^2 - d^2), d how far the line is from the centre: tangent is a question of those two)
+	if (discriminant < 4 * A * square(radius) * scalar_traits<T>::zero_length_sq) {
 		T t = -B / (2 * A);
 		p1 = p2 = r.a * t + r.r0;
 		return 1;
@@ -72,24 +64,42 @@ sphere<N,T>::query_intersection(ray<N, T> const &r, vec_type &p1, vec_type &p2) 
 template<int N, class T> bool
 sphere<N, T>::test_intersection(segment<N, T> const &l) const
 {
-	vec_type p1, p2;
-	T ll = l.length_sq();
-
-	switch (query_intersection(l.to_ray(), p1, p2)) {
-		case 0: return false;
-		case 1: return (p1 - l.A).length_sq() < ll;
-		default: return (p1 - l.A).length_sq() < ll || (p2 - l.A).length_sq() < ll;
-	}
+	// A sphere is solid: a segment wholly inside it meets it.
+	return (l.closest_point(centre) - centre).length_sq() <= square(radius);
 }
 
 template<int N, class T> int
 sphere<N, T>::query_intersection(segment<N, T> const &l, vec_type &p1, vec_type &p2) const
 {
-	switch (query_intersection(l.to_ray(), p1, p2)) {
-		case 0: return 0;
-		case 1: return int(l.contains(p1));
-		default: return int(l.contains(p1)) + int(l.contains(p2));
+	// The same roots as the ray's, kept by where on the segment they are (the segment's A + (B - A) t).
+	vec_type const direction = l.direction(), delta = l.A - centre;
+	T const A = direction.length_sq();
+	if (!(A > T(0))) return 0;
+	T const B = T(2) * dot(direction, delta);
+	T const C = delta.length_sq() - square(radius);
+	T const discriminant = square(B) - 4 * A * C;
+	if (discriminant < 0) return 0;
+
+	if (discriminant < 4 * A * square(radius) * scalar_traits<T>::zero_length_sq) {
+		T const t = -B / (2 * A);
+		if (!(t >= T(0) && t <= T(1))) return 0;
+		p1 = p2 = l.A + direction * t;
+		return 1;
 	}
+
+	T const discriminant_sqrt = sqrt(discriminant);
+	T const t1 = (-B + discriminant_sqrt) / (2 * A), t2 = (-B - discriminant_sqrt) / (2 * A);
+	bool const on1 = t1 >= T(0) && t1 <= T(1), on2 = t2 >= T(0) && t2 <= T(1);
+	if (on1 && on2) {
+		p1 = l.A + direction * t1;
+		p2 = l.A + direction * t2;
+		return 2;
+	}
+	if (on1 || on2) {
+		p1 = p2 = l.A + direction * (on1 ? t1 : t2);
+		return 1;
+	}
+	return 0;
 }
 
 template<int N, class T> bool

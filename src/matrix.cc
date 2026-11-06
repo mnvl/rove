@@ -2,6 +2,7 @@
 // Copyright (c) 2004-2026 Manvel Avetisian
 
 #include "quaternion.h"
+#include <stdexcept>
 #include "matrix.h"
 #ifdef ROVE_DFLOAT
 #include "dfloat.h"
@@ -251,7 +252,7 @@ template<class T> bool
 matrix<3,3,T>::axes_to_world(vec_type const &tangent, vec_type const &normal, vec_type const &binormal)
 {
 	matrix world_to_axes;
-	world_to_axes.world_to_axes(tangent, normal, binormal);
+	if (!world_to_axes.world_to_axes(tangent, normal, binormal)) return false;
 	return world_to_axes.inverse(*this);
 }
 
@@ -506,6 +507,8 @@ matrix<4,4,T>::lookat(point_type const &eye,point_type const &at,point_type cons
 template<class T> void
 matrix<4,4,T>::ortho(T width,T height,T z_near,T z_far)
 {
+	if (!(width != 0 && height != 0 && z_near != z_far))
+		throw std::invalid_argument("rove: ortho of no size, or with nothing between z_near and z_far");
 	ij[0][0] = 2/width;
 	ij[0][1] = 0;
 	ij[0][2] = 0;
@@ -530,6 +533,8 @@ matrix<4,4,T>::ortho(T width,T height,T z_near,T z_far)
 template<class T> void
 matrix<4,4,T>::perspective(T fovy,T aspect,T z_near,T z_far)
 {
+	if (!(fovy != 0 && aspect != 0 && z_near != z_far))
+		throw std::invalid_argument("rove: perspective of no field of view or aspect, or with nothing between z_near and z_far");
 	T h = 1 / tan(fovy/2);
 	T w = h / aspect;
 

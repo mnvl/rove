@@ -287,4 +287,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(closest_points_work_in_two_dimensions, T, scalars)
 	BOOST_TEST((ca - rove::vec<2, T>(2, 2)).length() < T(1e-5));
 }
 
+BOOST_AUTO_TEST_CASE(a_segment_contains_its_ends)
+{
+	rove::segment<3> const s(rove::vec<3>(1, 2, 3), rove::vec<3>(4, 6, 3));
+	BOOST_TEST(s.contains(s.A));
+	BOOST_TEST(s.contains(s.B));
+	BOOST_TEST(s.contains(s.point(0.5f)));
+	BOOST_TEST(!s.contains(s.point(1.5f)));
+	BOOST_TEST(!s.contains(s.point(-0.5f)));
+	BOOST_TEST(!s.contains(s.A + rove::vec<3>(0, 0, 1)));
+	// a point segment contains its point
+	rove::segment<3> const point(rove::vec<3>(1, 2, 3), rove::vec<3>(1, 2, 3));
+	BOOST_TEST(point.contains(rove::vec<3>(1, 2, 3)));
+	BOOST_TEST(!point.contains(rove::vec<3>(1, 2, 4)));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

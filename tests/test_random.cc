@@ -187,4 +187,60 @@ BOOST_AUTO_TEST_CASE(value_noise_is_smooth_bounded_and_the_seeds_own)
 	BOOST_REQUIRE_THROW(rove::fbm(0.0f, 0.0f, 0, 2.0f, 0.5f, 1), std::invalid_argument);
 }
 
+BOOST_AUTO_TEST_CASE(uniform_of_whole_numbers_covers_both_ends)
+{
+	rove::pcg32 rng(1, 2);
+	int counts[7] = {};
+	for (int i = 0; i < 6000; ++i) {
+		int const d = rng.uniform(1, 6);
+		BOOST_REQUIRE(d >= 1 && d <= 6);
+		++counts[d];
+	}
+	for (int d = 1; d <= 6; ++d) BOOST_TEST(counts[d] > 800);
+	BOOST_TEST(rng.uniform(5, 5) == 5);
+	BOOST_TEST(rng.uniform(std::int64_t(-3), std::int64_t(-3)) == -3);
+	// across the whole range of a type, in every width
+	bool negative = false, positive = false;
+	for (int i = 0; i < 100; ++i) {
+		std::int64_t const v = rng.uniform(std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::max());
+		(v < 0 ? negative : positive) = true;
+	}
+	BOOST_TEST(negative);
+	BOOST_TEST(positive);
+	std::uint8_t const b = rng.uniform(std::uint8_t(0), std::uint8_t(255));
+	(void)b;
+	BOOST_CHECK_THROW(rng.uniform(2, 1), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(weighted_by_whole_numbers_follows_the_weights)
+{
+	rove::pcg32 rng(3, 4);
+	int const even[] = {1, 1, 1, 1};
+	int counts[4] = {};
+	for (int i = 0; i < 4000; ++i) ++counts[rng.weighted(std::begin(even), std::end(even))];
+	for (int c : counts) BOOST_TEST(c > 800);
+	int const skewed[] = {0, 3, 0, 1};
+	int s[4] = {};
+	for (int i = 0; i < 4000; ++i) ++s[rng.weighted(std::begin(skewed), std::end(skewed))];
+	BOOST_TEST(s[0] == 0);
+	BOOST_TEST(s[2] == 0);
+	BOOST_TEST(s[1] > 2700);
+	BOOST_TEST(s[3] > 800);
+	unsigned const none[] = {0, 0};
+	BOOST_CHECK_THROW(rng.weighted(std::begin(none), std::end(none)), std::invalid_argument);
+	int const negative[] = {1, -1};
+	BOOST_CHECK_THROW(rng.weighted(std::begin(negative), std::end(negative)), std::invalid_argument);
+}
+
+// Floats keep the bits they had: a recording plays back
+BOOST_AUTO_TEST_CASE(uniform_and_weighted_of_floats_draw_as_before)
+{
+	rove::pcg32 a(9, 9), b(9, 9);
+	float const u = a.unit<float>();
+	BOOST_TEST(b.uniform(2.0f, 4.0f) == 2.0f + 2.0f * u);
+	float const w[] = {1, 2};
+	rove::pcg32 c(9, 9), d(9, 9);
+	BOOST_TEST(c.weighted(std::begin(w), std::end(w)) == (d.unit<float>() * 3.0f < 1.0f ? 0u : 1u));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

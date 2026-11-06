@@ -52,7 +52,7 @@ public:
 	static constexpr size_t dimensions = N;              ///< Number of dimensions
 	using vec_type = vec<dimensions,T>;          ///< Associated vector type
 	static constexpr size_t vertices_count = 1 << dimensions;  ///< Number of corner vertices (2^N)
-	static constexpr size_t edges_count = vertices_count + (1 << (dimensions-1));  ///< Number of edges
+	static constexpr size_t edges_count = dimensions * (1 << (dimensions-1));  ///< Number of edges
 	using ray_type = ray<dimensions,T>;          ///< Associated ray type
 
 	vec_type lo;   ///< Minimum corner (lower bounds in all dimensions)
@@ -253,9 +253,10 @@ public:
 	/**
 	 * @brief Extend AABB to include another AABB
 	 *
-	 * Grows this AABB to be the union of both boxes.
+	 * Grows this AABB to be the union of both boxes.  An empty box holds nothing, so it adds nothing.
 	 */
 	void extend(aabb const &b) {
+		if (b.is_empty()) return;
 		extend(b.lo);
 		extend(b.hi);
 	}

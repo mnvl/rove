@@ -527,4 +527,63 @@ BOOST_AUTO_TEST_CASE(contains_takes_the_surface_as_inside_as_aabb_and_capsule_do
 	BOOST_REQUIRE(!point.contains(rove::vec<2>(1, 2.001f)));
 }
 
+namespace
+{
+using v3 = rove::vec<3>;
+rove::sphere<3> unit_sphere() { return rove::sphere<3>(v3(0, 0, 0), 1); }
+}
+
+BOOST_AUTO_TEST_CASE(a_segment_that_stops_short_of_the_sphere_does_not_meet_it)
+{
+	// heading for the centre, its nearest point 0.5 outside
+	BOOST_TEST(!unit_sphere().test_intersection(rove::segment<3>(v3(3, 0, 0), v3(1.5f, 0, 0))));
+	// beside it, the same
+	BOOST_TEST(!unit_sphere().test_intersection(rove::segment<3>(v3(-3, 1.5f, 0), v3(3, 1.5f, 0))));
+}
+
+BOOST_AUTO_TEST_CASE(a_segment_that_reaches_the_sphere_meets_it)
+{
+	BOOST_TEST(unit_sphere().test_intersection(rove::segment<3>(v3(3, 0, 0), v3(0.5f, 0, 0))));
+	BOOST_TEST(unit_sphere().test_intersection(rove::segment<3>(v3(-3, 0.5f, 0), v3(3, 0.5f, 0))));
+	// a sphere is solid: wholly inside meets it too
+	BOOST_TEST(rove::sphere<3>(v3(0, 0, 0), 10).test_intersection(rove::segment<3>(v3(1, 0, 0), v3(2, 0, 0))));
+	// a segment that is a point
+	BOOST_TEST(unit_sphere().test_intersection(rove::segment<3>(v3(0.5f, 0, 0), v3(0.5f, 0, 0))));
+	BOOST_TEST(!unit_sphere().test_intersection(rove::segment<3>(v3(5, 0, 0), v3(5, 0, 0))));
+}
+
+// A ray starts at its origin
+BOOST_AUTO_TEST_CASE(a_ray_meets_the_sphere_only_ahead_of_it)
+{
+	BOOST_TEST(!unit_sphere().test_intersection(rove::ray<3>(v3(3, 0, 0), v3(1, 0, 0))));
+	BOOST_TEST(unit_sphere().test_intersection(rove::ray<3>(v3(3, 0, 0), v3(-1, 0, 0))));
+	BOOST_TEST(unit_sphere().test_intersection(rove::ray<3>(v3(0.5f, 0, 0), v3(1, 0, 0))));
+	BOOST_TEST(!unit_sphere().test_intersection(rove::ray<3>(v3(100, 0, 0), v3(0, 0, 0))));
+	BOOST_TEST(unit_sphere().test_intersection(rove::ray<3>(v3(0.5f, 0, 0), v3(0, 0, 0))));
+}
+
+BOOST_AUTO_TEST_CASE(a_long_segment_through_the_sphere_has_two_points_on_it)
+{
+	v3 p1, p2;
+	BOOST_REQUIRE(unit_sphere().query_intersection(rove::segment<3>(v3(-1000, 0.1f, 0.2f), v3(1000, 0.1f, 0.2f)), p1, p2) == 2);
+	// (t is near 0.5 along 2000 units, so to what a float of that size can tell)
+	BOOST_TEST(std::abs(p1.length() - 1) < 0.05f);
+	BOOST_TEST(std::abs(p2.length() - 1) < 0.05f);
+	BOOST_TEST(std::abs(p1.x + p2.x) < 0.05f);
+}
+
+// The points given are the ones on the segment: one that crosses once has it in p1, whichever root it is
+BOOST_AUTO_TEST_CASE(a_segment_that_crosses_once_returns_that_point_first)
+{
+	for (auto const &s : {rove::segment<3>(v3(0, 0, 0), v3(3, 0, 0)), rove::segment<3>(v3(0, 0, 0), v3(-3, 0, 0))}) {
+		v3 p1, p2;
+		BOOST_REQUIRE(unit_sphere().query_intersection(s, p1, p2) == 1);
+		BOOST_TEST(std::abs(p1.length() - 1) < 1e-5f);
+		BOOST_TEST(dot(p1, s.direction()) > 0);
+	}
+	v3 p1, p2;
+	BOOST_TEST(unit_sphere().query_intersection(rove::segment<3>(v3(0.1f, 0, 0), v3(0.2f, 0, 0)), p1, p2) == 0);
+	BOOST_TEST(unit_sphere().query_intersection(rove::ray<3>(v3(5, 0, 0), v3(0, 0, 0)), p1, p2) == 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

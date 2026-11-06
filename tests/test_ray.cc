@@ -540,5 +540,14 @@ BOOST_AUTO_TEST_CASE(check_finite_refuses_an_origin_or_a_direction_that_is_not_f
 	}
 }
 
+BOOST_AUTO_TEST_CASE(a_ray_of_no_direction_is_a_point_to_measure_from)
+{
+	rove::ray<3> const r(rove::vec<3>(1, 0, 0), rove::vec<3>(0, 0, 0));
+	BOOST_TEST(r.distance(rove::vec<3>(1, 3, 4)) == 5.0f);
+	BOOST_TEST(r.distance_sq(rove::vec<3>(1, 3, 4)) == 25.0f);
+	rove::ray<2> const r2(rove::vec<2>(1, 0), rove::vec<2>(0, 0));
+	BOOST_TEST(r2.distance(rove::vec<2>(1, 3)) == 3.0f);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 

@@ -616,5 +616,25 @@ BOOST_AUTO_TEST_CASE(trace_of_a_rectangle)
 	BOOST_TEST(d.trace(rove::ray<2, double>(rove::vec<2, double>(0, 1.5), rove::vec<2, double>(1, 0)), 0, 10));
 }
 
+BOOST_AUTO_TEST_CASE(extending_by_an_empty_box_changes_nothing)
+{
+	rove::aabb<3> b(rove::vec<3>(0, 0, 0), rove::vec<3>(1, 1, 1));
+	b.extend(rove::aabb<3>());
+	BOOST_TEST(b.lo == rove::vec<3>(0, 0, 0));
+	BOOST_TEST(b.hi == rove::vec<3>(1, 1, 1));
+	rove::aabb<3> empty;
+	empty.extend(rove::aabb<3>());
+	BOOST_TEST(empty.is_empty());
+	empty.extend(b);
+	BOOST_TEST(empty.lo == b.lo);
+	BOOST_TEST(empty.hi == b.hi);
+}
+
+BOOST_AUTO_TEST_CASE(a_rectangle_has_four_edges_and_a_box_twelve)
+{
+	BOOST_TEST(rove::aabb<2>::edges_count == 4u);
+	BOOST_TEST(rove::aabb<3>::edges_count == 12u);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 

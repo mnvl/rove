@@ -198,13 +198,15 @@ conjugate(quaternion<T> const &q) {
 
 /**
  * @brief The unit quaternion turning by `angle` (radians) about `axis`
- * @param axis A unit vector
+ * @param axis Of any length, as rotation_matrix takes it; one of no length is std::invalid_argument
  */
 template<class T, class S> inline quaternion<T>
 axis_angle(vec<3, T, S> const &axis, T angle) {
 	using std::sin, std::cos;
 	T const s = sin(angle / 2);
-	return quaternion<T>(axis.x * s, axis.y * s, axis.z * s, cos(angle / 2));
+	// (unit to within rounding is left as it is: what was right keeps its bits)
+	vec<3, T, S> const unit = abs(axis.length_sq() - T(1)) <= T(1) / T(100000) ? axis : normalize(axis);
+	return quaternion<T>(unit.x * s, unit.y * s, unit.z * s, cos(angle / 2));
 }
 
 /**

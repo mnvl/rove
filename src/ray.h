@@ -62,7 +62,9 @@ public:
 
 	T distance_sq(vec_type const &point) const
 	{
-		T t = dot(point - r0, a) / a.length_sq();
+		T const a_sq = a.length_sq();
+		if (!(a_sq != T(0))) return (point - r0).length_sq();      // no direction: a point to measure from
+		T t = dot(point - r0, a) / a_sq;
 		vec_type projection = apply(t);
 		return (projection - point).length_sq();
 	}

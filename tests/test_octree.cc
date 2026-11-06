@@ -16,6 +16,7 @@
 #include <rove/aabb.h>
 #include <rove/segment.h>
 #include <rove/octree.h>
+#include "test_garbage.h"
 #include <rove/sphere.h>
 #include <rove/triangle.h>
 #include <rove/random.h>
@@ -881,6 +882,16 @@ BOOST_AUTO_TEST_CASE(load_refuses_a_node_naming_a_missing_item)
 	std::memcpy(&no_index[bytes.size() - 9], &zero, sizeof(zero));
 	no_index.erase(bytes.size() - 5, 4);
 	BOOST_REQUIRE_THROW(loaded(no_index), std::runtime_error);
+}
+
+// What the contact of a miss says is defined: MemorySanitizer took it as uninitialised
+BOOST_AUTO_TEST_CASE(a_miss_is_all_zero)
+{
+	rove::contact_info<3> const fresh = constructed_over_garbage<rove::contact_info<3>>();
+	BOOST_TEST(!fresh.happened);
+	BOOST_TEST(!fresh.penetrated);
+	BOOST_TEST(fresh.time == 0.0f);
+	BOOST_TEST(fresh.penetration_depth == 0.0f);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

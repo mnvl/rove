@@ -262,7 +262,7 @@ template<class T> inline void minmax(vec<4,T> &v1,vec<4,T> &v2);
  */
 template<int N,class T,class S> inline vec<N,T,S> normalize(vec<N,T,S> const &v);
 
-/// @brief v made unit length, or v as it is where it has no length or is not a number: normalize(v) before it threw for them
+/// @brief v made unit length, as normalize(v) does however long or short, or v as it is where it has no length or is not a number
 template<int N,class T,class S> inline vec<N,T,S> normalize_or_zero(vec<N,T,S> const &v);
 
 /**
@@ -699,10 +699,14 @@ public:
 		z = -z;
 	}
 
-	/// @brief Convert rotation vector to axis-angle representation
-	/// @param[out] axis Rotation axis (normalized)
-	/// @param[out] angle Rotation angle in radians
-	void to_axis_angle(vec &axis, T &angle) const;
+	/// @brief Convert rotation vector to axis-angle representation: the vector's direction, and its length
+	/// @param[out] axis Rotation axis (normalized; (1, 0, 0) for no rotation, which has none of its own)
+	/// @param[out] angle Rotation angle in radians, 0 or more
+	void to_axis_angle(vec &axis, T &angle) const
+	{
+		angle = length();
+		axis = (angle > T(0)) ? rove::normalize_or_zero(*this) : vec(T(1), T(0), T(0));
+	}
 
 	/// @brief Test if two 3D vectors are collinear (parallel)
 	/// @param epsilon Tolerance for floating point comparison
@@ -716,13 +720,25 @@ public:
 	vec2_t xy() const { return vec2_t(x, y); }
 
 	/// @brief Get vector perpendicular in XY plane
-	vec perpendicular_xy() const;
+	vec perpendicular_xy() const
+	{
+		if (abs(x) + abs(y) < scalar_traits<T>::zero_length) return vec(0, 0, 1);
+		return vec(y, -x, 0);
+	}
 
 	/// @brief Get vector perpendicular in YZ plane
-	vec perpendicular_yz() const;
+	vec perpendicular_yz() const
+	{
+		if (abs(y) + abs(z) < scalar_traits<T>::zero_length) return vec(1, 0, 0);
+		return vec(0, z, -y);
+	}
 
 	/// @brief Get vector perpendicular in XZ plane
-	vec perpendicular_xz() const;
+	vec perpendicular_xz() const
+	{
+		if (abs(x) + abs(z) < scalar_traits<T>::zero_length) return vec(0, 1, 0);
+		return vec(z, 0, -x);
+	}
 
 	template<class Archive>
 	void serialize(Archive &archive)
@@ -958,6 +974,22 @@ public:
 
 	using S::i;
 
+	/// @brief The zero vector, as of any other length
+	vec()
+	{
+		for (size_t n = 0; n < dimensions; n++)
+			i[n] = T(0);
+	}
+
+	/// @brief Every component, in order
+	template<class... A> requires (sizeof...(A) == size_t(N) && (std::is_convertible_v<A, T> && ...))
+	vec(A... components)
+	{
+		T const values[] = {T(components)...};
+		for (size_t n = 0; n < dimensions; n++)
+			i[n] = values[n];
+	}
+
 	/// @brief The component at position n; n past the last one throws std::out_of_range
 	T &operator [](size_t n) { return i[detail::checked_index(n, dimensions)]; }
 	T const &operator [](size_t n) const { return i[detail::checked_index(n, dimensions)]; }
@@ -967,6 +999,21 @@ public:
 		for (size_t n = 0; n < dimensions; n++)
 			i[n] = a;
 	}
+
+	vec operator -() const
+	{
+		vec r(*this);
+		for (size_t n = 0; n < dimensions; n++)
+			r.i[n] = -r.i[n];
+		return r;
+	}
+
+	vec operator +(vec const &v) const { vec r(*this); r += v; return r; }
+	vec operator -(vec const &v) const { vec r(*this); r -= v; return r; }
+	vec operator *(vec const &v) const { vec r(*this); r *= v; return r; }
+	vec operator /(vec const &v) const { vec r(*this); r /= v; return r; }
+	vec operator *(T const k) const { vec r(*this); r *= k; return r; }
+	vec operator /(T const k) const { vec r(*this); r /= k; return r; }
 
 	/// @brief Every component equal (!= is its negation, as C++20 writes it)
 	bool operator ==(vec const &rhs) const
@@ -1200,11 +1247,14 @@ namespace detail
 template<int N,class T,class S> vec<N,T,S>
 scaled_down(vec<N,T,S> const &v, char const *what, T epsilon)
 {
-	v.check_nonzero(what, epsilon);
 	using std::abs;
 	T largest = abs(v.i[0]);
 	for (int n = 1; n < N; ++n)
 		largest = std::max(largest, abs(v.i[n]));
+	// (with no epsilon only a true zero has no direction: a vector whose square underflows has one, by its largest component)
+	using std::isfinite;
+	if (epsilon > T(0) || !(largest > T(0) && isfinite(largest)))
+		v.check_nonzero(what, epsilon);
 	vec<N,T,S> t(v);
 	for (int n = 0; n < N; ++n)
 		t.i[n] = v.i[n] / largest;
@@ -1233,7 +1283,22 @@ normalize_or_zero(vec<N,T,S> const &v)
 {
 	vec<N,T,S> t(v);
 	T l = t.length();
-	if (abs(l) > 0) t /= l;
+	using std::isfinite;
+	if (l > 0 && isfinite(l)) {
+		t /= l;
+		return t;
+	}
+	// its square underflowed to no length, or overflowed: by its largest component, it has a length.  Zero and NaN stay as they are.
+	T largest = T(0);
+	for (int n = 0; n < N; ++n)
+		largest = std::max(largest, T(abs(v.i[n])));
+	if (!(largest > 0 && isfinite(largest))) {
+		if (abs(l) > 0) t /= l;
+		return t;
+	}
+	for (int n = 0; n < N; ++n)
+		t.i[n] = v.i[n] / largest;
+	t /= t.length();
 	return t;
 }
 

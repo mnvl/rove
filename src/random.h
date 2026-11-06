@@ -78,10 +78,12 @@ public:
 		return std::uint32_t(m >> 32);
 	}
 
-	/// A number in [0, 1): 24 random bits for a float (and dfloat), 53 for a double, exactly
+	/// A number in [0, 1): 24 random bits for a float (and dfloat), 53 for a double, exactly.  A whole-number type holds none of
+	/// these: it does not compile.
 	template<class T>
 	T unit()
 	{
+		static_assert(!std::is_integral_v<T>, "rove: pcg32::unit of a whole-number type is always 0: use below() or uniform()");
 		if constexpr (std::is_same_v<T, double> || std::is_same_v<T, long double>) {
 			// two statements: in one expression the order of the draws is the compiler's, and the double with it
 			std::uint64_t const high = next();
@@ -93,7 +95,8 @@ public:
 		}
 	}
 
-	/// lo + (hi - lo) unit(): in [lo, hi] (hi only where the sum rounds up to it).  lo above hi is std::invalid_argument.
+	/// lo + (hi - lo) unit(): in [lo, hi] (hi only where the sum rounds up to it); of a whole-number type, each of lo to hi as likely
+	/// as the others, hi included.  lo above hi is std::invalid_argument.
 	template<class T>
 	T uniform(T lo, T hi)
 	{
@@ -101,7 +104,13 @@ public:
 			using std::to_string;
 			throw std::invalid_argument("rove: pcg32::uniform from " + to_string(lo) + " to " + to_string(hi));
 		}
-		return lo + (hi - lo) * unit<T>();
+		if constexpr (std::is_integral_v<T>) {
+			using wide = std::make_unsigned_t<T>;
+			std::uint64_t const span = std::uint64_t(wide(hi) - wide(lo));       // how many above lo; modulo the width, so never overflows
+			return T(wide(lo) + wide(whole_up_to(span)));
+		} else {
+			return lo + (hi - lo) * unit<T>();
+		}
 	}
 
 	/// True with probability p (unit() < p): never for 0, always for 1
@@ -162,7 +171,10 @@ public:
 		}
 		if (!(total > 0))
 			throw std::invalid_argument("rove: pcg32::weighted: the weights add up to nothing");
-		weight_type const pick = unit<weight_type>() * total;
+		// (a whole-number total is drawn whole: unit() of one would be 0 every time)
+		weight_type pick;
+		if constexpr (std::is_integral_v<weight_type>) pick = uniform(weight_type(0), weight_type(total - 1));
+		else pick = unit<weight_type>() * total;
 		weight_type sum = 0;
 		std::size_t index = 0, last_positive = 0;
 		for (It w = first; w != last; ++w, ++index) {
@@ -177,6 +189,23 @@ public:
 	bool operator==(pcg32 const &other) const = default;
 
 private:
+	/// A whole number in [0, span], each as likely as the others
+	std::uint64_t whole_up_to(std::uint64_t span)
+	{
+		if (span < std::numeric_limits<std::uint32_t>::max())
+			return below(std::uint32_t(span) + 1);
+		// by rejection, of 64 bits under the smallest mask that covers the span
+		std::uint64_t mask = span;
+		for (int shift = 1; shift < 64; shift *= 2)
+			mask |= mask >> shift;
+		while (true) {
+			std::uint64_t const high = next();
+			std::uint64_t const low = next();
+			std::uint64_t const candidate = ((high << 32) | low) & mask;
+			if (candidate <= span) return candidate;
+		}
+	}
+
 	std::uint64_t state_, increment_;
 };
 

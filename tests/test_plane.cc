@@ -400,5 +400,32 @@ BOOST_AUTO_TEST_CASE(default_is_all_zero_and_so_no_plane_not_whatever_the_memory
 	BOOST_REQUIRE(!p.is_correct());
 }
 
+BOOST_AUTO_TEST_CASE(two_planes_meet_on_both_for_a_line_mostly_along_y)
+{
+	// x = 1 and z = 2, the line along y: the branch that had the point mirrored
+	rove::plane<> const a(rove::vec<3>(1, 0, 0), rove::vec<3>(1, 0, 0)), b(rove::vec<3>(0, 0, 2), rove::vec<3>(0, 0, 1));
+	rove::ray<3> line;
+	BOOST_REQUIRE(a.query_intersection(b, line));
+	BOOST_TEST(a.contains(line.r0));
+	BOOST_TEST(b.contains(line.r0));
+	BOOST_TEST(line.r0.x == 1.0f, boost::test_tools::tolerance(1e-5f));
+	BOOST_TEST(line.r0.z == 2.0f, boost::test_tools::tolerance(1e-5f));
+	BOOST_TEST(std::abs(line.a.y) == 1.0f, boost::test_tools::tolerance(1e-5f));
+	// tilted, each branch of the three lies on both planes
+	float const normals[][6] = {
+		{1, 0.2f, 0.1f, 0.1f, 0.3f, 1},       // along y mostly
+		{1, 0.1f, 0.3f, 0.1f, 1, 0.2f},       // along z mostly
+		{0.1f, 1, 0.2f, 0.3f, 0.1f, 1},       // along x mostly
+	};
+	for (auto const &n : normals) {
+		rove::plane<> const p(rove::vec<3>(1, 2, 3), normalize(rove::vec<3>(n[0], n[1], n[2])));
+		rove::plane<> const q(rove::vec<3>(-1, 4, 2), normalize(rove::vec<3>(n[3], n[4], n[5])));
+		rove::ray<3> l;
+		BOOST_REQUIRE(p.query_intersection(q, l));
+		BOOST_TEST(p.contains(l.r0, 1e-4f));
+		BOOST_TEST(q.contains(l.r0, 1e-4f));
+	}
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 

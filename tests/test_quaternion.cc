@@ -737,5 +737,15 @@ BOOST_AUTO_TEST_CASE(the_matrix_of_a_unit_quaternion_has_the_bits_it_had)
 	}
 }
 
+// As rotation_matrix takes it
+BOOST_AUTO_TEST_CASE(axis_angle_takes_an_axis_of_any_length)
+{
+	rove::quaternion<float> const q = rove::axis_angle(rove::vec<3>(0, 0, 10), 0.5f);
+	rove::quaternion<float> const unit = rove::axis_angle(rove::vec<3>(0, 0, 1), 0.5f);
+	BOOST_TEST(q.z == unit.z);
+	BOOST_TEST(q.w == unit.w);
+	BOOST_CHECK_THROW((void)rove::axis_angle(rove::vec<3>(0, 0, 0), 0.5f), std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 

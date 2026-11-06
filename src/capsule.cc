@@ -11,23 +11,6 @@
 namespace rove
 {
 
-template<int N, class T> aabb<N, T>
-capsule<N, T>::bounds() const
-{
-	vec_type diagonal(radius, radius, radius);
-
-	aabb<N, T> bounds;
-	bounds.lo = bounds.hi = axe.A;
-	bounds.extend(axe.B);
-
-	bounds.extend(axe.A - diagonal);
-	bounds.extend(axe.A + diagonal);
-
-	bounds.extend(axe.B - diagonal);
-	bounds.extend(axe.B + diagonal);
-	return bounds;
-}
-
 template<int N, class T>
 bool capsule<N, T>::test_intersection(triangle<dimensions, T> const &triangle_shape) const
 {

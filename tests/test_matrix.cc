@@ -757,4 +757,75 @@ BOOST_AUTO_TEST_CASE (composing_in_place_is_the_product_in_its_order_bit_for_bit
 	check_composing_in_place<4, double>();
 }
 
+BOOST_AUTO_TEST_CASE(inverse_into_itself_is_the_inverse)
+{
+	rove::matrix<4,4> m = rove::translation_matrix(rove::vec<3>(1, 2, 3)) * rove::rotation_matrix(rove::vec<3>(0, 0, 1), 0.7f);
+	rove::matrix<4,4> expected;
+	BOOST_REQUIRE(m.inverse(expected));
+	rove::matrix<4,4> aliased = m;
+	BOOST_REQUIRE(aliased.inverse(aliased));
+	for (int c = 0; c < 4; ++c) for (int r = 0; r < 4; ++r) BOOST_TEST(aliased.ij[c][r] == expected.ij[c][r]);
+
+	rove::matrix<3,3> n;
+	n.rotation(rove::vec<3>(0, 1, 0), 0.4f);
+	n.ij[2][0] = 1.5f;
+	rove::matrix<3,3> expected3;
+	BOOST_REQUIRE(n.inverse(expected3));
+	rove::matrix<3,3> aliased3 = n;
+	BOOST_REQUIRE(aliased3.inverse(aliased3));
+	for (int c = 0; c < 3; ++c) for (int r = 0; r < 3; ++r) BOOST_TEST(aliased3.ij[c][r] == expected3.ij[c][r]);
+}
+
+BOOST_AUTO_TEST_CASE(transpose_into_itself_is_the_transpose)
+{
+	rove::matrix<4,4> m = rove::translation_matrix(rove::vec<3>(1, 2, 3));
+	rove::matrix<4,4> aliased = m;
+	aliased.transpose(aliased);
+	for (int c = 0; c < 4; ++c) for (int r = 0; r < 4; ++r) BOOST_TEST(aliased.ij[c][r] == m.ij[r][c]);
+	rove::matrix<3,3> n;
+	n.rotation(rove::vec<3>(0, 1, 0), 0.4f);
+	rove::matrix<3,3> aliased3 = n;
+	aliased3.transpose(aliased3);
+	for (int c = 0; c < 3; ++c) for (int r = 0; r < 3; ++r) BOOST_TEST(aliased3.ij[c][r] == n.ij[r][c]);
+}
+
+BOOST_AUTO_TEST_CASE(axes_to_world_of_axes_with_no_inverse_says_so)
+{
+	rove::matrix<3,3> m;
+	m.identity();
+	rove::vec<3> const x(1, 0, 0), y(0, 1, 0);
+	BOOST_TEST(!m.axes_to_world(x, x, y));
+	BOOST_TEST(m.axes_to_world(x, y, rove::vec<3>(0, 0, 1)));
+}
+
+// rotation(v) is the Euler angles of rotation(a, b, c): written so, and tested so
+BOOST_AUTO_TEST_CASE(rotation_of_a_vector_is_of_euler_angles)
+{
+	rove::matrix<4,4> a, b;
+	a.rotation(rove::vec<3>(0.3f, 0.5f, 0.7f));
+	b.rotation(0.3f, 0.5f, 0.7f);
+	for (int c = 0; c < 4; ++c) for (int r = 0; r < 4; ++r) BOOST_TEST(a.ij[c][r] == b.ij[c][r]);
+}
+
+BOOST_AUTO_TEST_CASE(a_scale_too_small_for_its_determinant_has_no_inverse)
+{
+	BOOST_CHECK_THROW((void)rove::inverse(rove::scaling_matrix(rove::vec<3>(1e-13f, 1e-13f, 1e-13f))), std::invalid_argument);
+	rove::matrix<4,4> out;
+	BOOST_TEST(!rove::scaling_matrix(rove::vec<3>(1e-13f, 1e-13f, 1e-13f)).inverse(out));
+	// the small scales that do have one keep working
+	rove::matrix<4,4> const small = rove::inverse(rove::scaling_matrix(rove::vec<3>(1e-3f, 1e-3f, 1e-3f)));
+	BOOST_TEST(small.ij[0][0] == 1000.0f, boost::test_tools::tolerance(1e-4f));
+}
+
+BOOST_AUTO_TEST_CASE(projections_with_nothing_between_their_planes_throw)
+{
+	rove::matrix<4,4> m;
+	BOOST_CHECK_THROW(m.perspective(1, 1, 5, 5), std::invalid_argument);
+	BOOST_CHECK_THROW(m.ortho(1, 1, 5, 5), std::invalid_argument);
+	BOOST_CHECK_THROW(m.ortho(0, 1, 1, 5), std::invalid_argument);
+	BOOST_CHECK_THROW(m.perspective(1, 0, 1, 5), std::invalid_argument);
+	m.perspective(1, 1, 1, 5);
+	BOOST_TEST(m.ij[2][3] == 1.0f);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

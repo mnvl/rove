@@ -151,7 +151,8 @@ public:
 	/// axes)
 	void rotation(T alpha,T beta,T gamma);
 
-	/// @brief Set to rotation matrix from rotation vector
+	/// @brief Set to rotation matrix from Euler angles (alpha, beta, gamma) in a vector: rotation(v.x, v.y, v.z).  Not a rotation vector
+	/// (rotation_vector(q)): for one of those, rotation(from_rotation_vector(v))
 	void rotation(vec_type const &v);
 
 	/// @brief Set to rotation matrix from quaternion
@@ -224,7 +225,7 @@ public:
 	matrix const &check_invertible(char const *what) const {
 		T const det = determinant();
 		using std::isfinite, std::to_string;
-		if (!(det != 0) || !isfinite(det))
+		if (!(det != 0) || !isfinite(det) || !isfinite(T(1) / det))
 			throw std::invalid_argument(std::string(what) + " of determinant " + to_string(det));
 		return *this;
 	}
@@ -253,9 +254,12 @@ public:
 	 */
 	[[nodiscard]] bool inverse(matrix &M) const {
 		T det = determinant();
-		if (det == 0) return false;
-		adjoint(M);
-		M /= det;
+		using std::isfinite;
+		if (det == 0 || !isfinite(T(1) / det)) return false;
+		matrix r;          // (M may be *this)
+		adjoint(r);
+		r /= det;
+		M = r;
 		return true;
 	}
 
@@ -267,11 +271,12 @@ public:
 		return matrix(*this).inverse(*this);
 	}
 
-	/// @brief Compute transpose matrix
+	/// @brief Compute transpose matrix (tp may be *this)
 	void transpose(matrix &tp) const {
-		tp.ij[0][0] = ij[0][0];		tp.ij[0][1] = ij[1][0];		tp.ij[0][2] = ij[2][0];
-		tp.ij[1][0] = ij[0][1];		tp.ij[1][1] = ij[1][1];		tp.ij[1][2] = ij[2][1];
-		tp.ij[2][0] = ij[0][2];		tp.ij[2][1] = ij[1][2];		tp.ij[2][2] = ij[2][2];
+		matrix const m(*this);
+		tp.ij[0][0] = m.ij[0][0];		tp.ij[0][1] = m.ij[1][0];		tp.ij[0][2] = m.ij[2][0];
+		tp.ij[1][0] = m.ij[0][1];		tp.ij[1][1] = m.ij[1][1];		tp.ij[1][2] = m.ij[2][1];
+		tp.ij[2][0] = m.ij[0][2];		tp.ij[2][1] = m.ij[1][2];		tp.ij[2][2] = m.ij[2][2];
 	}
 
 	matrix &operator *=(T k) {
@@ -401,7 +406,8 @@ public:
 	/// axes)
 	void rotation(T alpha,T beta,T gamma);
 
-	/// @brief Set to rotation matrix from rotation vector
+	/// @brief Set to rotation matrix from Euler angles (alpha, beta, gamma) in a vector: rotation(v.x, v.y, v.z).  Not a rotation vector
+	/// (rotation_vector(q)): for one of those, rotation(from_rotation_vector(v))
 	void rotation(point_type const &v);
 
 	/// @brief Set to rotation matrix from quaternion
@@ -515,7 +521,7 @@ public:
 	matrix const &check_invertible(char const *what) const {
 		T const det = determinant();
 		using std::isfinite, std::to_string;
-		if (!(det != 0) || !isfinite(det))
+		if (!(det != 0) || !isfinite(det) || !isfinite(T(1) / det))
 			throw std::invalid_argument(std::string(what) + " of determinant " + to_string(det));
 		return *this;
 	}
@@ -548,9 +554,12 @@ public:
 	 */
 	[[nodiscard]] bool inverse(matrix &M) const {
 		T det = determinant();
-		if (det == 0) return false;
-		adjoint(M);
-		M /= det;
+		using std::isfinite;
+		if (det == 0 || !isfinite(T(1) / det)) return false;
+		matrix r;          // (M may be *this)
+		adjoint(r);
+		r /= det;
+		M = r;
 		return true;
 	}
 
@@ -564,10 +573,11 @@ public:
 
 	/// @brief Compute transpose matrix
 	void transpose(matrix &tp) const {
-		tp.ij[0][0] = ij[0][0];	tp.ij[0][1] = ij[1][0];	tp.ij[0][2] = ij[2][0]; tp.ij[0][3] = ij[3][0];
-		tp.ij[1][0] = ij[0][1];	tp.ij[1][1] = ij[1][1];	tp.ij[1][2] = ij[2][1]; tp.ij[1][3] = ij[3][1];
-		tp.ij[2][0] = ij[0][2];	tp.ij[2][1] = ij[1][2];	tp.ij[2][2] = ij[2][2]; tp.ij[2][3] = ij[3][2];
-		tp.ij[3][0] = ij[0][3];	tp.ij[3][1] = ij[1][3];	tp.ij[3][2] = ij[2][3]; tp.ij[3][3] = ij[3][3];
+		matrix const m(*this);          // (tp may be *this)
+		tp.ij[0][0] = m.ij[0][0];	tp.ij[0][1] = m.ij[1][0];	tp.ij[0][2] = m.ij[2][0]; tp.ij[0][3] = m.ij[3][0];
+		tp.ij[1][0] = m.ij[0][1];	tp.ij[1][1] = m.ij[1][1];	tp.ij[1][2] = m.ij[2][1]; tp.ij[1][3] = m.ij[3][1];
+		tp.ij[2][0] = m.ij[0][2];	tp.ij[2][1] = m.ij[1][2];	tp.ij[2][2] = m.ij[2][2]; tp.ij[2][3] = m.ij[3][2];
+		tp.ij[3][0] = m.ij[0][3];	tp.ij[3][1] = m.ij[1][3];	tp.ij[3][2] = m.ij[2][3]; tp.ij[3][3] = m.ij[3][3];
 	}
 
 	/// @brief Transpose matrix in place

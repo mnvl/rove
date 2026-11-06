@@ -805,4 +805,89 @@ BOOST_AUTO_TEST_CASE(get_aabb_into_a_box_and_by_value_are_the_corners_bounds)
 	BOOST_REQUIRE(by_value.hi == into.hi);
 }
 
+BOOST_AUTO_TEST_CASE(the_excircles_of_a_3_4_5_triangle)
+{
+	// right angle at A: side a (BC) = 5, b (CA) = 4... with the legs along x and y
+	rove::triangle<3> const t(rove::vec<3>(0, 0, 0), rove::vec<3>(3, 0, 0), rove::vec<3>(0, 4, 0));
+	// opposite A: tangent to the hypotenuse and to both legs produced, of radius area / (s - a) = 6 / (6 - 5) = 6
+	BOOST_TEST((t.excenter_A() - rove::vec<3>(6, 6, 0)).length() < 1e-4f);
+	BOOST_TEST(t.excircle_A_radius() == 6.0f, boost::test_tools::tolerance(1e-4f));
+	// opposite B (3, 0, 0): area / (s - b) = 6 / (6 - 4) = 3
+	BOOST_TEST((t.excenter_B() - rove::vec<3>(-3, 3, 0)).length() < 1e-4f);
+	BOOST_TEST(t.excircle_B_radius() == 3.0f, boost::test_tools::tolerance(1e-4f));
+	// opposite C (0, 4, 0): area / (s - c) = 6 / (6 - 3) = 2
+	BOOST_TEST((t.excenter_C() - rove::vec<3>(2, -2, 0)).length() < 1e-4f);
+	BOOST_TEST(t.excircle_C_radius() == 2.0f, boost::test_tools::tolerance(1e-4f));
+}
+
+// Each excentre is as far as its radius from every side's line
+BOOST_AUTO_TEST_CASE(an_excentre_is_its_radius_from_all_three_sides)
+{
+	rove::triangle<3> const t(rove::vec<3>(1, 2, 3), rove::vec<3>(4, 2.5f, 3.5f), rove::vec<3>(2, 5, 1));
+	auto const to_line = [](rove::vec<3> const &p, rove::vec<3> const &a, rove::vec<3> const &b) {
+		return cross(p - a, normalize(b - a)).length();
+	};
+	std::pair<rove::vec<3>, float> const circles[] = { {t.excenter_A(), t.excircle_A_radius()}, {t.excenter_B(), t.excircle_B_radius()}, {t.excenter_C(), t.excircle_C_radius()} };
+	for (auto const &c : circles) {
+		BOOST_TEST(to_line(c.first, t.A, t.B) == c.second, boost::test_tools::tolerance(1e-3f));
+		BOOST_TEST(to_line(c.first, t.B, t.C) == c.second, boost::test_tools::tolerance(1e-3f));
+		BOOST_TEST(to_line(c.first, t.C, t.A) == c.second, boost::test_tools::tolerance(1e-3f));
+	}
+}
+
+BOOST_AUTO_TEST_CASE(collide_gives_the_contact_where_the_other_triangles_vertex_lands)
+{
+	// a triangle in the plane y = 0, standing still; the other's vertex comes down at the origin
+	rove::triangle<3> const floor(rove::vec<3>(-5, 0, -5), rove::vec<3>(5, 0, -5), rove::vec<3>(0, 0, 5));
+	rove::triangle<3> const dart(rove::vec<3>(0, 1, 0), rove::vec<3>(0.2f, 2, 0), rove::vec<3>(-0.2f, 2, 0));
+	float t;
+	rove::vec<3> cp, cn;
+	BOOST_REQUIRE(floor.collide(dart, rove::vec<3>(0, 0, 0), rove::vec<3>(0, -1, 0), t, cp, cn));
+	BOOST_TEST(t == 1.0f, boost::test_tools::tolerance(1e-5f));
+	BOOST_TEST((cp - rove::vec<3>(0, 0, 0)).length() < 1e-5f);
+	// both moving: the same place in the moving world
+	BOOST_REQUIRE(floor.collide(dart, rove::vec<3>(0, 0.5f, 0), rove::vec<3>(0, -0.5f, 0), t, cp, cn));
+	BOOST_TEST((cp - rove::vec<3>(0, 0.5f, 0)).length() < 1e-5f);
+}
+
+BOOST_AUTO_TEST_CASE(two_triangles_cut_along_the_part_of_the_line_in_both)
+{
+	rove::triangle<3> const a(rove::vec<3>(-2, 0, -2), rove::vec<3>(2, 0, -2), rove::vec<3>(0, 0, 2));
+	// a triangle standing up through a, wider than a along x at z = 0
+	rove::triangle<3> const b(rove::vec<3>(-5, -1, 0), rove::vec<3>(5, -1, 0), rove::vec<3>(0, 4, 0));
+	rove::segment<3> cut;
+	BOOST_REQUIRE(a.query_intersection(b, cut));
+	// the cut is at y = 0, z = 0, from x = -1 to x = 1 (a's width at z = 0)
+	BOOST_TEST(cut.A.y == 0.0f, boost::test_tools::tolerance(1e-5f));
+	BOOST_TEST(cut.A.z == 0.0f, boost::test_tools::tolerance(1e-5f));
+	BOOST_TEST(std::abs(cut.A.x) == 1.0f, boost::test_tools::tolerance(1e-4f));
+	BOOST_TEST(cut.A.x + cut.B.x == 0.0f, boost::test_tools::tolerance(1e-4f));
+	// narrower than a: the cut stops where b does
+	rove::triangle<3> const narrow(rove::vec<3>(-0.5f, -1, 0), rove::vec<3>(0.5f, -1, 0), rove::vec<3>(0, 1, 0));
+	BOOST_REQUIRE(a.query_intersection(narrow, cut));
+	BOOST_TEST(std::abs(cut.A.x) == 0.25f, boost::test_tools::tolerance(1e-4f));
+	BOOST_TEST(cut.A.x + cut.B.x == 0.0f, boost::test_tools::tolerance(1e-4f));
+	// the planes meet, the triangles do not
+	rove::triangle<3> const far_off(rove::vec<3>(10, -1, 0), rove::vec<3>(12, -1, 0), rove::vec<3>(11, 1, 0));
+	BOOST_TEST(!a.query_intersection(far_off, cut));
+	// parallel
+	rove::triangle<3> const above(rove::vec<3>(-2, 1, -2), rove::vec<3>(2, 1, -2), rove::vec<3>(0, 1, 2));
+	BOOST_TEST(!a.query_intersection(above, cut));
+}
+
+BOOST_AUTO_TEST_CASE(a_triangle_far_from_the_origin_contains_its_centroid)
+{
+	rove::vec<3> const o(1000, 2000, 3000);
+	rove::triangle<3> const t(o + rove::vec<3>(0, 0, 0), o + rove::vec<3>(1.3f, 0.2f, 0.7f), o + rove::vec<3>(0.1f, 1.1f, 0.6f));
+	BOOST_TEST(t.contains(t.cog()));
+	BOOST_TEST(t.contains_on_plane(t.cog()));
+	// and not a point well off its plane, nor in its plane but outside
+	BOOST_TEST(!t.contains(t.cog() + t.normal() * 0.1f));
+	BOOST_TEST(!t.contains(t.A + (t.A - t.cog())));
+	// near the origin the tolerance is as tight as it was
+	rove::triangle<3> const near_origin(rove::vec<3>(0, 0, 0), rove::vec<3>(1, 0, 0), rove::vec<3>(0, 1, 0));
+	BOOST_TEST(near_origin.contains(rove::vec<3>(0.2f, 0.2f, 0)));
+	BOOST_TEST(!near_origin.contains(rove::vec<3>(0.2f, 0.2f, 1e-4f)));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -18,6 +18,7 @@
 #include <boost/test/unit_test.hpp>
 #include <rove/vec.h>
 #include "test_tolerance.h"
+#include "test_garbage.h"
 
 BOOST_AUTO_TEST_SUITE(vec)
 
@@ -1438,6 +1439,86 @@ BOOST_AUTO_TEST_CASE(colours_unpack_in_the_order_of_their_memory)
 	BOOST_TEST((b == 1 && g == 2 && r == 3 && a == 4));
 	auto [gx, gz] = rove::xz<float>(5, 6);
 	BOOST_TEST((gx == 5 && gz == 6));
+}
+
+BOOST_AUTO_TEST_CASE(a_vector_of_five_is_a_whole_type)
+{
+	rove::vec<5> const zero = constructed_over_garbage<rove::vec<5>>();
+	for (int n = 0; n < 5; ++n) BOOST_TEST(zero.i[n] == 0.0f);
+	rove::vec<5> const a(1, 2, 3, 4, 5), b(5, 4, 3, 2, 1);
+	BOOST_TEST(((a + b) == rove::vec<5>(6, 6, 6, 6, 6)));
+	BOOST_TEST(((a - b) == rove::vec<5>(-4, -2, 0, 2, 4)));
+	BOOST_TEST(((a * 2.0f) == rove::vec<5>(2, 4, 6, 8, 10)));
+	BOOST_TEST(((2.0f * a) == rove::vec<5>(2, 4, 6, 8, 10)));
+	BOOST_TEST(((a / 2.0f) == rove::vec<5>(0.5f, 1, 1.5f, 2, 2.5f)));
+	BOOST_TEST(((a * b) == rove::vec<5>(5, 8, 9, 8, 5)));
+	BOOST_TEST(((-a) == rove::vec<5>(-1, -2, -3, -4, -5)));
+	rove::vec<5> const unit(1, 0, 0, 0, 0);
+	BOOST_TEST((rove::reject(a, unit) == rove::vec<5>(0, 2, 3, 4, 5)));
+	BOOST_TEST((rove::move_towards(zero, unit, 0.25f) == rove::vec<5>(0.25f, 0, 0, 0, 0)));
+	rove::vec<6, double> const six(1, 2, 3, 4, 5, 6);
+	BOOST_TEST((six + six).i[5] == 12.0);
+}
+
+BOOST_AUTO_TEST_CASE(to_axis_angle_of_a_rotation_vector)
+{
+	rove::vec<3> axis;
+	float angle;
+	rove::vec<3>(0, 0, 1.5f).to_axis_angle(axis, angle);
+	BOOST_TEST(angle == 1.5f);
+	BOOST_TEST(axis == rove::vec<3>(0, 0, 1));
+	rove::vec<3>(0, -2, 0).to_axis_angle(axis, angle);
+	BOOST_TEST(angle == 2.0f);
+	BOOST_TEST(axis == rove::vec<3>(0, -1, 0));
+	// no rotation has no axis of its own: a unit one, and an angle of 0
+	rove::vec<3>(0, 0, 0).to_axis_angle(axis, angle);
+	BOOST_TEST(angle == 0.0f);
+	BOOST_TEST(axis.length() == 1.0f);
+}
+
+// These lived in one translation unit, for floats
+BOOST_AUTO_TEST_CASE(every_scalar_and_storage_links_what_a_float_vector_has)
+{
+	rove::vec<3, double> const d(1, 2, 3);
+	BOOST_TEST((d.perpendicular_xy() == rove::vec<3, double>(2, -1, 0)));
+	BOOST_TEST((d.perpendicular_yz() == rove::vec<3, double>(0, 3, -2)));
+	BOOST_TEST((d.perpendicular_xz() == rove::vec<3, double>(3, 0, -1)));
+	rove::vec<3, double> axis;
+	double angle;
+	d.to_axis_angle(axis, angle);
+	BOOST_TEST(angle == d.length());
+	rove::rgb<float> const c(1, 2, 3);
+	BOOST_TEST(c.perpendicular_xy().r == 2.0f);
+}
+
+BOOST_AUTO_TEST_CASE(abs_of_zero_is_positive_zero)
+{
+	BOOST_TEST(!std::signbit(rove::abs(0.0f)));
+	BOOST_TEST(!std::signbit(rove::abs(-0.0f)));
+	BOOST_TEST(rove::abs(-2.5f) == 2.5f);
+	BOOST_TEST(std::isnan(rove::abs(std::nanf(""))));
+	BOOST_TEST(!std::signbit(rove::vec<3>(0, 0, 0).manhattan_length()));
+	BOOST_TEST(rove::abs(3u) == 3u);
+}
+
+BOOST_AUTO_TEST_CASE(normalize_and_normalize_or_zero_agree_at_the_extremes)
+{
+	rove::vec<3> const tiny(1e-30f, 0, 0), huge(1e20f, 0, 0), both(3e-30f, 4e-30f, 0);
+	BOOST_TEST(rove::normalize(tiny) == rove::vec<3>(1, 0, 0));
+	BOOST_TEST(rove::normalize_or_zero(tiny) == rove::vec<3>(1, 0, 0));
+	BOOST_TEST(rove::normalize(huge) == rove::vec<3>(1, 0, 0));
+	BOOST_TEST(rove::normalize_or_zero(huge) == rove::vec<3>(1, 0, 0));
+	BOOST_TEST(rove::normalize(both).x == 0.6f, boost::test_tools::tolerance(1e-5f));
+	BOOST_TEST(rove::normalize_or_zero(both).y == 0.8f, boost::test_tools::tolerance(1e-5f));
+	// what has no direction still has none
+	BOOST_CHECK_THROW((void)rove::normalize(rove::vec<3>(0, 0, 0)), std::invalid_argument);
+	BOOST_TEST(rove::normalize_or_zero(rove::vec<3>(0, 0, 0)) == rove::vec<3>(0, 0, 0));
+	BOOST_CHECK_THROW((void)rove::normalize(rove::vec<3>(std::nanf(""), 0, 0)), std::invalid_argument);
+	BOOST_CHECK_THROW((void)rove::direction(tiny), std::invalid_argument);
+	// bit for bit for an ordinary vector
+	rove::vec<3> const v(1, 2, 3);
+	BOOST_TEST(rove::normalize_or_zero(v).y == 2.0f / v.length());
+	BOOST_TEST(rove::normalize(v).y == 2.0f / v.length());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

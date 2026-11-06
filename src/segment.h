@@ -56,8 +56,10 @@ public:
 
 	bool contains(vec_type const &p) const
 	{
+		// (the cross product is the distance from the line times |v|: the tolerance is one of distance whatever the length of the segment)
 		vec_type u(p - A), v(direction());
-		return u.is_collinear(v) && u.length_sq() < v.length_sq() && dot(u, v) > 0;
+		T const tolerance = scalar_traits<T>::default_epsilon * std::max(T(1), v.length());
+		return u.is_collinear(v, tolerance) && u.length_sq() <= v.length_sq() && dot(u, v) >= 0;
 	}
 
 	/// The point A + (B - A) t; exactly A at t = 0 and exactly B at t = 1.

@@ -163,71 +163,36 @@ public:
 
 	// the excenters and the radii of the excircles, i.e. the circles
 	// tangent to one side of the triangle and to the extensions of the
-	// other two sides
+	// other two sides.  With a, b, c the sides opposite A, B, C, the excentre
+	// opposite A is (-a A + b B + c C) / (-a + b + c), of radius area / (s - a).
 	vec_type excenter_A() const {
-		vec_type a = B - C;
-		vec_type b = C - A;
-		vec_type c = A - B;
-
-		T ab=a.length();
-		T bc=b.length();
-		T ca=c.length();
-
-		return ((ab+bc+ca)*incenter()-ab*A)/(bc+ca);
+		T const a = (B - C).length(), b = (C - A).length(), c = (A - B).length();
+		return (b * B + c * C - a * A) / (b + c - a);
 	}
 
 	T excircle_A_radius() const {
-		vec_type b = C - A;
-		vec_type c = A - B;
-
-		T bc=b.length();
-		T ca=c.length();
-
-		return area()/(bc+ca);
+		T const a = (B - C).length(), b = (C - A).length(), c = (A - B).length();
+		return T(2) * area() / (b + c - a);
 	}
 
 	vec_type excenter_B() const {
-		vec_type a = B - C;
-		vec_type b = C - A;
-		vec_type c = A - B;
-
-		T ab=a.length();
-		T bc=b.length();
-		T ca=c.length();
-
-		return ((ab+bc+ca)*incenter()-bc*B)/(ab+ca);
+		T const a = (B - C).length(), b = (C - A).length(), c = (A - B).length();
+		return (a * A + c * C - b * B) / (a + c - b);
 	}
 
 	T excircle_B_radius() const {
-		vec_type a = B - C;
-		vec_type c = A - B;
-
-		T ab=a.length();
-		T ca=c.length();
-
-		return area()/(ab+ca);
+		T const a = (B - C).length(), b = (C - A).length(), c = (A - B).length();
+		return T(2) * area() / (a + c - b);
 	}
 
 	vec_type excenter_C() const {
-		vec_type a = B - C;
-		vec_type b = C - A;
-		vec_type c = A - B;
-
-		T ab=a.length();
-		T bc=b.length();
-		T ca=c.length();
-
-		return ((ab+bc+ca)*incenter()-ca*C)/(ab+bc);
+		T const a = (B - C).length(), b = (C - A).length(), c = (A - B).length();
+		return (a * A + b * B - c * C) / (a + b - c);
 	}
 
 	T excircle_C_radius() const {
-		vec_type a = B - C;
-		vec_type b = C - A;
-
-		T ab=a.length();
-		T bc=b.length();
-
-		return area()/(ab+bc);
+		T const a = (B - C).length(), b = (C - A).length(), c = (A - B).length();
+		return T(2) * area() / (a + b - c);
 	}
 
 	// the centre and the radius of the Feuerbach circle (nine-point
@@ -255,8 +220,14 @@ public:
 			&& (dot(cross(A - C, v - C), cross(A - C, B - C)) >= 0);
 	}
 
+	/// @brief Whether v is in the triangle: on its plane, to within what rounding allows at this distance from the origin
 	bool contains(vec_type const &v) const {
-		return to_plane().contains(v) && contains_on_plane(v);
+		T scale = T(0);
+		for (vec_type const *p : {&A, &B, &C, &v})
+			for (size_t n = 0; n < dimensions; ++n)
+				scale = std::max(scale, abs(p->i[n]));
+		T const tolerance = std::max(scalar_traits<T>::default_epsilon, scale * 4 * std::numeric_limits<T>::epsilon());
+		return to_plane().contains(v, tolerance) && contains_on_plane(v);
 	}
 
 	// Moller-Trumbore ray-triangle intersection. Two-sided (does not cull
@@ -369,21 +340,19 @@ public:
 
 	bool test_intersection(triangle const &t) const;
 
+	/// @brief The cut between two triangles: the part of the line of their planes inside both.  False for parallel planes (coplanar
+	/// triangles have no one line) and where the two have no point of it in common.
 	bool query_intersection(triangle const &t,segment_type &ln) const {
 		ray_type r;
 		if (!to_plane().query_intersection(t.to_plane(),r)) return false;
 
-		vec_type v[2];
-		size_t v_size = 0;
-		segment_type a(A,B), b(B,C), c(C,A);
+		T lo0, hi0, lo1, hi1;
+		if (!part_of_line_inside(r, t.to_plane(), lo0, hi0)) return false;
+		if (!t.part_of_line_inside(r, to_plane(), lo1, hi1)) return false;
+		T const lo = std::max(lo0, lo1), hi = std::min(hi0, hi1);
+		if (lo > hi) return false;
 
-		if (a.query_intersection(r,v[v_size])) v_size++;
-		if (b.query_intersection(r,v[v_size])) v_size++;
-		if (v_size<2 && c.query_intersection(r,v[v_size])) v_size++;
-
-		if (v_size<2) return false;
-
-		ln.construct(v[0],v[1]);
+		ln.construct(r.apply(lo), r.apply(hi));
 		return true;
 	}
 
@@ -437,7 +406,7 @@ public:
 			cp0 = tri1.A + vel * t0;
 			if (t_min <= t0 && t0 <= t_max && (!found || t0 < t) && contains(cp0)) {
 				t = t0;
-				cp = tri1.A + vel0 * t;
+				cp = tri1.A + vel1 * t;
 				cn = n0;
 				found = true;
 			}
@@ -446,7 +415,7 @@ public:
 			cp0 = tri1.B + vel * t0;
 			if (t_min <= t0 && t0 <= t_max && (!found || t0 < t) && contains(cp0)) {
 				t = t0;
-				cp = tri1.B + vel0 * t;
+				cp = tri1.B + vel1 * t;
 				cn = n0;
 				found = true;
 			}
@@ -455,13 +424,38 @@ public:
 			cp0 = tri1.C + vel * t0;
 			if (t_min <= t0 && t0 <= t_max && (!found || t0 < t) && contains(cp0)) {
 				t = t0;
-				cp = tri1.C + vel0 * t;
+				cp = tri1.C + vel1 * t;
 				cn = n0;
 				found = true;
 			}
 		}
 
 		return found;
+	}
+
+private:
+	/// The part of a line, as its t, that is inside this triangle, the line lying in this triangle's plane and in `other`: where the
+	/// sides cross that other plane.
+	bool part_of_line_inside(ray_type const &line, plane_type const &other, T &lo, T &hi) const {
+		vec_type const *const corners[3] = {&A, &B, &C};
+		bool any = false;
+		for (int i = 0; i < 3; ++i) {
+			vec_type const &p = *corners[i], &q = *corners[(i + 1) % 3];
+			T const dp = other.A * p.x + other.B * p.y + other.C * p.z + other.D;
+			T const dq = other.A * q.x + other.B * q.y + other.C * q.z + other.D;
+			if ((dp > T(0) && dq > T(0)) || (dp < T(0) && dq < T(0))) continue;
+			T const k = dp - dq;
+			if (k == T(0) && dp != T(0)) continue;
+			// (a side lying in the other plane has both its ends on the line)
+			T const ks[2] = { k == T(0) ? T(0) : dp / k, k == T(0) ? T(1) : dp / k };
+			for (T const f : ks) {
+				T const u = dot(p + (q - p) * f - line.r0, line.a);
+				lo = any ? std::min(lo, u) : u;
+				hi = any ? std::max(hi, u) : u;
+				any = true;
+			}
+		}
+		return any;
 	}
 };
 

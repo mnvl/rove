@@ -362,4 +362,51 @@ BOOST_AUTO_TEST_CASE (agrees_with_dense_sampling)
 	BOOST_REQUIRE(misses > 200);
 }
 
+// t + gap / rate that does not change t: the distance left is below what time can tell, so this is the contact
+BOOST_AUTO_TEST_CASE(first_contact_returns_when_the_step_is_below_the_resolution_of_time)
+{
+	using v3 = rove::vec<3>;
+	rove::capsule<3> const c(v3(0, 0, 0), v3(0, 1, 0), 0.5f);
+	rove::sphere<3> const ball(v3(2, 0.5f, 0), 0.5f);
+	auto const hit = rove::first_contact(c, c, ball, v3(-1.5f, 0, 0), 1e-8f);
+	BOOST_REQUIRE(hit.has_value());
+	BOOST_TEST(hit->time == 2.0f / 3.0f, boost::test_tools::tolerance(1e-3f));
+	// near the contact the gap comes in steps of 1.5e-8 and t in steps of 6e-8: a gap above the tolerance that no step of t can close
+	rove::capsule<3> const line(v3(0, 0, 0), v3(0, 1, 0), 0);
+	rove::sphere<3> const small(v3(1, 0.5f, 0), 0.25f);
+	auto const touch = rove::first_contact(line, line, small, v3(-1, 0, 0), 1e-8f);
+	BOOST_REQUIRE(touch.has_value());
+	BOOST_TEST(touch->time == 0.75f, boost::test_tools::tolerance(1e-4f));
+}
+
+// Whether two lines cross is a question of the angle between them, not of how long their directions are
+BOOST_AUTO_TEST_CASE(a_short_direction_is_not_parallel_to_everything)
+{
+	rove::ray<3> const a(rove::vec<3>(0, 0, 0), rove::vec<3>(5e-4f, 0, 0));
+	rove::ray<3> const b(rove::vec<3>(0, 1, 0), rove::vec<3>(0, 0, 5e-4f));
+	BOOST_TEST(a.distance(b) == 1.0f, boost::test_tools::tolerance(1e-5f));
+	rove::ray<3> const crossing(rove::vec<3>(1, -1, 0), rove::vec<3>(0, 5e-4f, 0));
+	float t;
+	BOOST_TEST(a.query_intersection(crossing, t));
+	BOOST_TEST(a.apply(t).x == 1.0f, boost::test_tools::tolerance(1e-3f));
+	rove::ray<2> const a2(rove::vec<2>(0, 0), rove::vec<2>(5e-4f, 0));
+	rove::ray<2> const b2(rove::vec<2>(1, -1), rove::vec<2>(0, 5e-4f));
+	BOOST_TEST(a2.distance(b2) == 0.0f);
+	BOOST_TEST(a2.query_intersection(b2, t));
+	// parallel stays parallel
+	rove::ray<3> const parallel(rove::vec<3>(0, 2, 0), rove::vec<3>(1, 0, 0));
+	BOOST_TEST(a.distance(parallel) == 2.0f, boost::test_tools::tolerance(1e-5f));
+	BOOST_TEST(!a.query_intersection(parallel, t));
+}
+
+BOOST_AUTO_TEST_CASE(a_circle_above_a_short_segment_touches_it_when_it_should)
+{
+	using v2 = rove::vec<2>;
+	rove::sphere<2> const ball(v2(0.005f, 2e-5f + 1e-5f), 1e-5f);
+	rove::segment<2> const short_one(v2(0, 0), v2(0.01f, 0));
+	auto const hit = rove::first_contact(short_one, ball, v2(0, -5e-5f));
+	BOOST_REQUIRE(hit.has_value());
+	BOOST_TEST(hit->time == 0.4f, boost::test_tools::tolerance(1e-2f));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

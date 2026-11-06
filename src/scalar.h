@@ -89,9 +89,10 @@ sign(T x, T epsilon = scalar_traits<T>::default_epsilon) {
 	return 0;
 }
 
+// (0 - s, not -s: the absolute value of a zero is +0, and a NaN stays one)
 template<class T> inline T
 abs(T s) {
-	return s > 0 ? s : -s;
+	return s > 0 ? s : T(0) - s;
 }
 
 // (Each through a using-declaration: for float, double and the integers the call is std::'s, as it always was; for a T of one's own,

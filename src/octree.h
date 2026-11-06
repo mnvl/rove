@@ -70,6 +70,12 @@ public:
 	static constexpr unsigned y_mask = 2;
 	static constexpr unsigned z_mask = 4;
 
+	/**
+	 * @param bounds The box the items go in
+	 * @param leaf_items_threshold A cell of more items than this divides
+	 * @param min_subcluster_diagonal_sq A cell whose squared diagonal is below this does not divide.  The default of 1 suits a scene
+	 *        measured in units of about a metre: a scene under about one unit across never divides, so scale this with it.
+	 */
 	explicit octree(
 		aabb_type const &bounds,
 		size_t leaf_items_threshold = 8,
