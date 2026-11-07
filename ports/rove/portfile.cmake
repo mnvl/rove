@@ -14,7 +14,7 @@ else()
         REPO mnvl/rove
         REF "v${VERSION}"
         # the SHA512 of the release's archive: vcpkg prints it when this is wrong
-        SHA512 f4d0112a0a1a98b882d5260b6c473fa332dc1e3cd8d6af1415acf817824ba70040bc77632d706683b9b74170479444ec6003ed402fb78f60b941dac68d8902b5
+        SHA512 91e5f93c61b469cff6e8c8bd2118cbbb6d0c72b0ebadc41fbb4482fc9287e9453663c04d5cac858b2411562673622e034ef5f62454cabceca4f195f198b1c4b0
         HEAD_REF main
     )
 endif()
