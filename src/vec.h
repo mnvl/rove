@@ -1252,8 +1252,7 @@ scaled_down(vec<N,T,S> const &v, char const *what, T epsilon)
 	for (int n = 1; n < N; ++n)
 		largest = (std::max)(largest, abs(v.i[n]));
 	// (with no epsilon only a true zero has no direction: a vector whose square underflows has one, by its largest component)
-	using std::isfinite;
-	if (epsilon > T(0) || !(largest > T(0) && isfinite(largest)))
+	if (epsilon > T(0) || !(largest > T(0) && rove::isfinite(largest)))
 		v.check_nonzero(what, epsilon);
 	vec<N,T,S> t(v);
 	for (int n = 0; n < N; ++n)
@@ -1266,9 +1265,8 @@ scaled_down(vec<N,T,S> const &v, char const *what, T epsilon)
 template<int N,class T,class S> vec<N,T,S>
 normalize(vec<N,T,S> const &v)
 {
-	using std::isfinite;
 	T const l = v.length();
-	if (!(l > 0 && isfinite(l))) {       // no length, not a number, or so long that its square overflows
+	if (!(l > 0 && rove::isfinite(l))) {       // no length, not a number, or so long that its square overflows
 		vec<N,T,S> t = detail::scaled_down(v, "rove: normalize a vector", T(0));
 		t /= t.length();
 		return t;
@@ -1283,8 +1281,7 @@ normalize_or_zero(vec<N,T,S> const &v)
 {
 	vec<N,T,S> t(v);
 	T l = t.length();
-	using std::isfinite;
-	if (l > 0 && isfinite(l)) {
+	if (l > 0 && rove::isfinite(l)) {
 		t /= l;
 		return t;
 	}
@@ -1292,7 +1289,7 @@ normalize_or_zero(vec<N,T,S> const &v)
 	T largest = T(0);
 	for (int n = 0; n < N; ++n)
 		largest = (std::max)(largest, T(abs(v.i[n])));
-	if (!(largest > 0 && isfinite(largest))) {
+	if (!(largest > 0 && rove::isfinite(largest))) {
 		if (abs(l) > 0) t /= l;
 		return t;
 	}
@@ -1306,9 +1303,8 @@ normalize_or_zero(vec<N,T,S> const &v)
 template<int N,class T,class S> inline bool
 is_finite(vec<N,T,S> const &v)
 {
-	using std::isfinite;
 	for (int n = 0; n < N; ++n)
-		if (!isfinite(v.i[n])) return false;
+		if (!rove::isfinite(v.i[n])) return false;
 	return true;
 }
 
@@ -1340,9 +1336,8 @@ check_nonzero(vec<N,T,S> const &v, char const *what, T epsilon)
 template<int N,class T,class S> vec<N,T,S>
 direction(vec<N,T,S> const &v)
 {
-	using std::isfinite;
 	T const l = v.length();
-	if (!(l > scalar_traits<T>::zero_length && isfinite(l))) {
+	if (!(l > scalar_traits<T>::zero_length && rove::isfinite(l))) {
 		vec<N,T,S> t = detail::scaled_down(v, "rove: direction of a vector", scalar_traits<T>::zero_length);
 		t *= 1 / t.length();
 		return t;
@@ -1487,8 +1482,8 @@ template<int N,class T,class S> inline T
 length_sq_of_a_direction(vec<N,T,S> const &v, char const *what)
 {
 	T const l2 = v.length_sq();
-	using std::isfinite, std::to_string;
-	if (!(l2 > scalar_traits<T>::zero_length_sq) || !isfinite(l2))
+	using std::to_string;
+	if (!(l2 > scalar_traits<T>::zero_length_sq) || !rove::isfinite(l2))
 		throw std::invalid_argument(std::string("rove: ") + what + " of squared length " + to_string(l2));
 	return l2;
 }

@@ -92,11 +92,7 @@ sign(T x, T epsilon = scalar_traits<T>::default_epsilon) {
 namespace detail
 {
 
-// For code templated on the scalar: the standard's for float and double, a T of one's own's by argument lookup (dfloat has no std:: of
-// its own, and its constructor refuses a double).
-template<class T> inline bool isnan_of(T v) { using std::isnan; return isnan(v); }
-template<class T> inline bool isfinite_of(T v) { using std::isfinite; return isfinite(v); }
-template<class T> inline T floor_of(T v) { using std::floor; return floor(v); }
+// For code templated on the scalar (a T of one's own, like dfloat, has its own functions, and its constructor refuses a double).
 template<class T> inline std::string to_string_of(T v) { using std::to_string; return to_string(v); }
 template<class T> constexpr T constant_of(double v)
 {
@@ -120,6 +116,24 @@ abs(T s) {
 
 // (Each through a using-declaration: for float, double and the integers the call is std::'s, as it always was; for a T of one's own,
 // like dfloat, argument lookup finds its own, so rove::sin(x) of one is its sin too.)
+template<class T> inline bool
+isnan(T s) {
+	using std::isnan;
+	return isnan(s);
+}
+
+template<class T> inline bool
+isfinite(T s) {
+	using std::isfinite;
+	return isfinite(s);
+}
+
+template<class T> inline auto
+floor(T s) {
+	using std::floor;
+	return floor(s);
+}
+
 template<class T> inline auto
 sin(T s) {
 	using std::sin;

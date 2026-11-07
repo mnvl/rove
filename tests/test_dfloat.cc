@@ -543,4 +543,31 @@ BOOST_AUTO_TEST_CASE(the_shapes_on_dfloat_answer_as_the_shapes_on_float_do)
 	BOOST_TEST(grid.query_intersection(box).size() == 1u);
 }
 
+BOOST_AUTO_TEST_CASE(isfinite_isnan_and_floor_of_a_dfloat_are_its_own)
+{
+	using D = rove::dfloat;
+	D const inf(std::numeric_limits<float>::infinity()), nan(std::numeric_limits<float>::quiet_NaN());
+	BOOST_TEST(rove::isfinite(D(1.5f)));
+	BOOST_TEST(!rove::isfinite(inf));
+	BOOST_TEST(!rove::isfinite(nan));
+	BOOST_TEST(rove::isnan(nan));
+	BOOST_TEST(!rove::isnan(inf));
+	BOOST_TEST(float(rove::floor(D(-0.5f))) == -1.0f);
+}
+
+// What the check of an inverse does on a dfloat: a determinant whose reciprocal is infinite has no inverse, as on a float
+BOOST_AUTO_TEST_CASE(a_dfloat_matrix_with_no_usable_inverse_says_so)
+{
+	using D = rove::dfloat;
+	rove::matrix<4, 4, D> m;
+	m.identity();
+	m.ij[0][0] = m.ij[1][1] = m.ij[2][2] = D(1e-13f);
+	rove::matrix<4, 4, D> out;
+	BOOST_TEST(!m.inverse(out));
+	BOOST_CHECK_THROW((void)rove::inverse(m), std::invalid_argument);
+	m.ij[0][0] = m.ij[1][1] = m.ij[2][2] = D(0.5f);
+	BOOST_REQUIRE(m.inverse(out));
+	BOOST_TEST(float(out.ij[0][0]) == 2.0f);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

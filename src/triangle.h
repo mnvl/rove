@@ -293,7 +293,7 @@ public:
 		if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) return B + (C - B) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)));
 		T const sum = va + vb + vc;
 		// a NaN anywhere fails every test above and lands here
-		if (detail::isnan_of(sum)) return vec_type(sum, sum, sum);
+		if (rove::isnan(sum)) return vec_type(sum, sum, sum);
 		if (!(sum > 0)) {
 			// no area: the nearest of the three edges
 			segment_type const edges[3] = {segment_type(A, B), segment_type(B, C), segment_type(C, A)};

@@ -84,8 +84,8 @@ public:
 	/// rotation.  (It became the identity, so a lerp of opposite quaternions or a damaged key turned into no rotation at all.)
 	void normalize() {
 		T n = norm();
-		using std::isfinite, std::to_string;
-		if (!(n > scalar_traits<T>::zero_length) || !isfinite(n))
+		using std::to_string;
+		if (!(n > scalar_traits<T>::zero_length) || !rove::isfinite(n))
 			throw std::invalid_argument("rove: normalize a quaternion of norm " + to_string(n));
 		scale(1/n);
 	}
@@ -230,8 +230,8 @@ namespace detail
 template<class T> inline T
 norm_sq_of_a_rotation(quaternion<T> const &q, char const *what) {
 	T const n2 = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
-	using std::isfinite, std::to_string;
-	if (!(n2 > scalar_traits<T>::zero_length_sq) || !isfinite(n2))
+	using std::to_string;
+	if (!(n2 > scalar_traits<T>::zero_length_sq) || !rove::isfinite(n2))
 		throw std::invalid_argument(std::string("rove: ") + what + " of a quaternion of squared norm " + to_string(n2));
 	return n2;
 }

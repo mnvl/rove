@@ -105,7 +105,7 @@ struct spatial_traits<triangle<3, T>>: spatial_traits_3<T> {
 		aabb<3, T> result;
 		for (int k = 0; k < 3; ++k) {
 			T const a = primitive.A.i[k], b = primitive.B.i[k], c = primitive.C.i[k];
-			if (detail::isnan_of(a) || detail::isnan_of(b) || detail::isnan_of(c)) {
+			if (rove::isnan(a) || rove::isnan(b) || rove::isnan(c)) {
 				result.lo.i[k] = result.hi.i[k] = std::numeric_limits<T>::quiet_NaN();
 				continue;
 			}

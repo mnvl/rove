@@ -151,10 +151,6 @@ public:
 	/// axes)
 	void rotation(T alpha,T beta,T gamma);
 
-	/// @brief Set to rotation matrix from Euler angles (alpha, beta, gamma) in a vector: rotation(v.x, v.y, v.z).  Not a rotation vector
-	/// (rotation_vector(q)): for one of those, rotation(from_rotation_vector(v))
-	void rotation(vec_type const &v);
-
 	/// @brief Set to rotation matrix from quaternion
 	void rotation(quaternion_type const &q);
 
@@ -212,10 +208,9 @@ public:
 
 	/// @brief *this, or std::invalid_argument: `what` and " that is not finite" where an entry is NaN or infinite
 	matrix const &check_finite(char const *what) const {
-		using std::isfinite;
 		for (size_t c = 0; c < columns; ++c)
 			for (size_t r = 0; r < rows; ++r)
-				if (!isfinite(ij[c][r]))
+				if (!rove::isfinite(ij[c][r]))
 					throw std::invalid_argument(std::string(what) + " that is not finite");
 		return *this;
 	}
@@ -224,8 +219,8 @@ public:
 	/// is zero or not a number
 	matrix const &check_invertible(char const *what) const {
 		T const det = determinant();
-		using std::isfinite, std::to_string;
-		if (!(det != 0) || !isfinite(det) || !isfinite(T(1) / det))
+		using std::to_string;
+		if (!(det != 0) || !rove::isfinite(det) || !rove::isfinite(T(1) / det))
 			throw std::invalid_argument(std::string(what) + " of determinant " + to_string(det));
 		return *this;
 	}
@@ -254,8 +249,7 @@ public:
 	 */
 	[[nodiscard]] bool inverse(matrix &M) const {
 		T det = determinant();
-		using std::isfinite;
-		if (det == 0 || !isfinite(T(1) / det)) return false;
+		if (det == 0 || !rove::isfinite(T(1) / det)) return false;
 		matrix r;          // (M may be *this)
 		adjoint(r);
 		r /= det;
@@ -406,10 +400,6 @@ public:
 	/// axes)
 	void rotation(T alpha,T beta,T gamma);
 
-	/// @brief Set to rotation matrix from Euler angles (alpha, beta, gamma) in a vector: rotation(v.x, v.y, v.z).  Not a rotation vector
-	/// (rotation_vector(q)): for one of those, rotation(from_rotation_vector(v))
-	void rotation(point_type const &v);
-
 	/// @brief Set to rotation matrix from quaternion
 	void rotation(quaternion_type const &q);
 
@@ -508,10 +498,9 @@ public:
 
 	/// @brief *this, or std::invalid_argument: `what` and " that is not finite" where an entry is NaN or infinite
 	matrix const &check_finite(char const *what) const {
-		using std::isfinite;
 		for (size_t c = 0; c < columns; ++c)
 			for (size_t r = 0; r < rows; ++r)
-				if (!isfinite(ij[c][r]))
+				if (!rove::isfinite(ij[c][r]))
 					throw std::invalid_argument(std::string(what) + " that is not finite");
 		return *this;
 	}
@@ -520,8 +509,8 @@ public:
 	/// is zero or not a number
 	matrix const &check_invertible(char const *what) const {
 		T const det = determinant();
-		using std::isfinite, std::to_string;
-		if (!(det != 0) || !isfinite(det) || !isfinite(T(1) / det))
+		using std::to_string;
+		if (!(det != 0) || !rove::isfinite(det) || !rove::isfinite(T(1) / det))
 			throw std::invalid_argument(std::string(what) + " of determinant " + to_string(det));
 		return *this;
 	}
@@ -554,8 +543,7 @@ public:
 	 */
 	[[nodiscard]] bool inverse(matrix &M) const {
 		T det = determinant();
-		using std::isfinite;
-		if (det == 0 || !isfinite(T(1) / det)) return false;
+		if (det == 0 || !rove::isfinite(T(1) / det)) return false;
 		matrix r;          // (M may be *this)
 		adjoint(r);
 		r /= det;
@@ -790,8 +778,8 @@ template<class T> inline vec<3,T>
 project_point(matrix<4,4,T> const &m,vec<3,T> const &p) {
 	vec<4,T> h;
 	detail::mul(h, m, p);
-	using std::isfinite, std::to_string;
-	if (!(h.w != 0) || !isfinite(h.w))
+	using std::to_string;
+	if (!(h.w != 0) || !rove::isfinite(h.w))
 		throw std::invalid_argument("rove: project_point: w is " + to_string(h.w));
 	return vec<3,T>(h.x / h.w, h.y / h.w, h.z / h.w);
 }
@@ -808,8 +796,8 @@ template<class T> inline vec<2,T>
 project_point(matrix<3,3,T> const &m,vec<2,T> const &p) {
 	vec<3,T> h;
 	detail::mul(h, m, p);
-	using std::isfinite, std::to_string;
-	if (!(h.z != 0) || !isfinite(h.z))
+	using std::to_string;
+	if (!(h.z != 0) || !rove::isfinite(h.z))
 		throw std::invalid_argument("rove: project_point: z is " + to_string(h.z));
 	return vec<2,T>(h.x / h.z, h.y / h.z);
 }
