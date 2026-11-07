@@ -1,6 +1,6 @@
 {
   "name": "rove",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Math and geometry for games, robotics and simulation: vectors, matrices, quaternions, shapes, collisions and spatial indices",
   "homepage": "https://github.com/mnvl/rove",
   "license": "MIT",

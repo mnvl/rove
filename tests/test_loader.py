@@ -111,3 +111,14 @@ def test_a_variable_that_names_a_module_picks_it(tmp_path):
     result = _which_binding(tmp_path, elsewhere)
     assert result.returncode == 0, result.stderr
     assert Path(result.stdout.strip()).parent == elsewhere
+
+
+def test_every_place_that_says_the_version_says_the_same():
+    import json
+    import re
+    import pyrove
+    root = Path(__file__).resolve().parents[1]
+    in_cmake = re.search(r"project\(rove VERSION ([0-9.]+)", (root / "CMakeLists.txt").read_text(encoding="utf-8")).group(1)
+    in_port = json.loads((root / "ports" / "rove" / "vcpkg.json").read_text(encoding="utf-8"))["version"]
+    in_changelog = re.search(r"^## \[([0-9.]+)\]", (root / "CHANGELOG.md").read_text(encoding="utf-8"), flags=re.M).group(1)
+    assert {in_cmake, in_port, in_changelog, pyrove.__version__} == {in_cmake}

@@ -7,7 +7,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pyrove"
-version = "3.0.0"
+version = "3.0.1"
 description = "Math and geometry for games, robotics and simulation: vectors, matrices, quaternions, shapes, collisions and spatial indices"
 readme = "README.md"
 requires-python = ">=3.9"

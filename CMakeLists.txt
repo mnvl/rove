@@ -2,7 +2,7 @@
 # Copyright (c) 2004-2026 Manvel Avetisian
 
 cmake_minimum_required(VERSION 3.15)
-project(rove VERSION 3.0.0 LANGUAGES CXX)
+project(rove VERSION 3.0.1 LANGUAGES CXX)
 include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 20)

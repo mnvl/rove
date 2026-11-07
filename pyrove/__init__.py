@@ -17,7 +17,7 @@ import warnings as _warnings
 from pathlib import Path as _Path
 from types import ModuleType as _ModuleType
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 
 def _binding_dirs() -> list[_Path]:

@@ -16,7 +16,7 @@ has `<format>` (libstdc++ 13); nothing else includes it.
 
 ```bash
 pip install pyrove                                    # a released version, from PyPI
-pip install "git+https://github.com/mnvl/rove@v3.0.0" # any tag or commit; builds from source
+pip install "git+https://github.com/mnvl/rove@v3.0.1" # any tag or commit; builds from source
 pip install ./rove                                    # a local checkout; builds from source
 ```
 
@@ -64,7 +64,7 @@ Without a submodule, CMake can fetch rove at configure time:
 
 ```cmake
 include(FetchContent)
-FetchContent_Declare(rove GIT_REPOSITORY https://github.com/mnvl/rove GIT_TAG v3.0.0)
+FetchContent_Declare(rove GIT_REPOSITORY https://github.com/mnvl/rove GIT_TAG v3.0.1)
 FetchContent_MakeAvailable(rove)
 target_link_libraries(my_app PRIVATE rove::rove)
 ```
@@ -74,7 +74,7 @@ target_link_libraries(my_app PRIVATE rove::rove)
 The recipe is `conanfile.py` in this repository. Until rove is in ConanCenter, create the package from a checkout:
 
 ```bash
-git clone --branch v3.0.0 https://github.com/mnvl/rove
+git clone --branch v3.0.1 https://github.com/mnvl/rove
 conan create rove -s compiler.cppstd=20
 ```
 
@@ -83,7 +83,7 @@ conan create rove -s compiler.cppstd=20
 
 ```ini
 [requires]
-rove/3.0.0
+rove/3.0.1
 
 [generators]
 CMakeDeps
