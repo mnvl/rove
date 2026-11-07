@@ -5,6 +5,7 @@
 // results (the double maths library's, rounded to float, taken once and written here), which a build for ARM or WebAssembly must give
 // too.  Against the platform's double maths over many arguments, each function is within one ulp and almost always exact.
 
+#include <numbers>
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -309,7 +310,7 @@ BOOST_AUTO_TEST_CASE(special_values_are_the_standards)
 		BOOST_CHECK(std::isnan(sin(x)) && std::isnan(cos(x)) && std::isnan(tan(x)));
 	}
 	BOOST_CHECK(std::isnan(sin(NaN)) && std::isnan(atan(NaN)) && std::isnan(exp(NaN)) && std::isnan(log(NaN)));
-	BOOST_CHECK(atan(INF) == float(M_PI / 2) && atan(-INF) == -float(M_PI / 2));
+	BOOST_CHECK(atan(INF) == float(std::numbers::pi / 2) && atan(-INF) == -float(std::numbers::pi / 2));
 	BOOST_CHECK(std::isnan(asin(1.0000001f)) && std::isnan(acos(-1.0000001f)) && std::isnan(asin(INF)));
 	BOOST_CHECK(exp(INF) == INF && exp(-INF) == 0 && exp(100.0f) == INF && exp(-110.0f) == 0);
 	BOOST_CHECK(log(INF) == INF && log(0.0f) == -INF && log(-0.0f) == -INF && std::isnan(log(-1.0f)) && log(1.0f) == 0);

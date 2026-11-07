@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#include <numbers>
 #include <boost/test/unit_test.hpp>
 #include <algorithm>
 #include <cmath>
@@ -402,11 +403,11 @@ BOOST_AUTO_TEST_CASE(transform_vector_is_the_difference_of_two_transformed_point
 BOOST_AUTO_TEST_CASE(transform_vector_keeps_double_precision)
 {
 	rove::matrix<4, 4, double> m;
-	m.rotation(rove::vec<3, double>(0, 0, 1), M_PI / 6);
+	m.rotation(rove::vec<3, double>(0, 0, 1), std::numbers::pi / 6);
 	m.translate(1e9, 0, 0);
 	rove::vec<3, double> const d = m.transform_vector(rove::vec<3, double>(1, 0, 0));
-	BOOST_TEST(std::abs(d.x - std::cos(M_PI / 6)) < 1e-12);
-	BOOST_TEST(std::abs(d.y - std::sin(M_PI / 6)) < 1e-12);
+	BOOST_TEST(std::abs(d.x - std::cos(std::numbers::pi / 6)) < 1e-12);
+	BOOST_TEST(std::abs(d.y - std::sin(std::numbers::pi / 6)) < 1e-12);
 	BOOST_TEST(d.z == 0);
 }
 
