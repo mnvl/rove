@@ -82,11 +82,18 @@ void bind_octree_triangle3(nb::module_ &m, char const *name)
 				return self.size();
 			})
 		.def("__repr__", [name](Octree const &self) {
-				nb::gil_scoped_release release;
-				std::shared_lock lock(lock_of(&self));
+				AABB bounds;
+				std::size_t size;
+				bool built;
+				{
+					nb::gil_scoped_release release;
+					std::shared_lock lock(lock_of(&self));
+					bounds = self.bounds();
+					size = self.size();
+					built = self.is_built();
+				}
 				bind_text::repr_stream ss;
-				ss << name << "(lo=" << self.bounds().lo << ", hi=" << self.bounds().hi << ", size=" << self.size() << ", "
-				   << (self.is_built() ? "built" : "not built") << ")";
+				ss << name << "(lo=" << bounds.lo << ", hi=" << bounds.hi << ", size=" << size << ", " << (built ? "built" : "not built") << ")";
 				return ss.str();
 			})
 		.def_prop_ro("bounds", &Octree::bounds)

@@ -133,6 +133,19 @@ def test_an_octree_that_is_not_built_pickles_and_comes_back_usable():
 
 # --- repr ---------------------------------------------------------------------
 
+@pytest.mark.parametrize("value", [0.1, 1 / 3, 1e-9, 1e20, -2.5, 16777217.0, 1.17549435e-38, 3.4028235e38, 0.0])
+def test_a_repr_reads_back_as_the_same_number(value):
+    for vec, width in ((pyrove.vec2d, float), (pyrove.vec2, lambda v: float(np.float32(v)))):
+        printed = repr(vec(value, 0.0))
+        x = float(printed[printed.index("(") + 1:printed.index(",")])
+        assert width(x) == width(value), printed
+
+
+def test_a_repr_says_what_is_not_a_number():
+    assert repr(pyrove.vec2(float("inf"), float("nan"))) == "vec2(inf, nan)"
+    assert repr(pyrove.vec2d(float("-inf"), 0.0)) == "vec2d(-inf, 0)"
+
+
 def test_a_repr_tells_a_double_from_a_float_and_keeps_its_digits():
     assert repr(pyrove.vec3d(0.1, 1 / 3, 1e-9)) == f"vec3d(0.1, {1 / 3!r}, 1e-09)"
     assert repr(pyrove.vec3(0.5, 0.1, 2)) == "vec3(0.5, 0.1, 2)"
