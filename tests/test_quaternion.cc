@@ -32,12 +32,12 @@ void test_matrix_quaternion_matrix(rove::matrix<3, 3> const& tf) {
 
 void test_slerp_i(rove::vec<3> const& p, rove::vec<3> const& q) {
 	rove::matrix<3, 3> tf1;
-	tf1.rotation(p);
+	tf1.rotation(p.x, p.y, p.z);
 	rove::quaternion<> q1;
 	q1.set_unit(tf1);
 
 	rove::matrix<3, 3> tf2;
-	tf2.rotation(q);
+	tf2.rotation(q.x, q.y, q.z);
 	rove::quaternion<> q2;
 	q2.set_unit(tf2);
 
@@ -53,7 +53,7 @@ void test_slerp_i(rove::vec<3> const& p, rove::vec<3> const& q) {
 
 		rove::vec<3> angles = p * (1 - x) + q * x;
 		rove::matrix<3, 3> tf4;
-		tf4.rotation(angles);
+		tf4.rotation(angles.x, angles.y, angles.z);
 
 		BOOST_REQUIRE(equal(tf3, tf4, rove::scalar(0.001)));
 	}
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE (rotate_random_degrees)
 			2 * rove::scalar(rand()) / rove::scalar(RAND_MAX) * rove::PI,
 			2 * rove::scalar(rand()) / rove::scalar(RAND_MAX) * rove::PI,
 			2 * rove::scalar(rand()) / rove::scalar(RAND_MAX) * rove::PI};
-		tf.rotation(angles);
+		tf.rotation(angles.x, angles.y, angles.z);
 		test_matrix_quaternion_matrix(tf);
 	}
 }
@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE (set_unit_produces_unit_quaternion)
 			2 * rove::scalar(rand()) / rove::scalar(RAND_MAX) * rove::PI};
 
 		rove::matrix<3, 3> tf;
-		tf.rotation(angles);
+		tf.rotation(angles.x, angles.y, angles.z);
 
 		rove::quaternion<> q;
 		q.set_unit(tf);

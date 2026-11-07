@@ -108,11 +108,6 @@ matrix<3,3,T>::rotation(T alpha,T beta,T gamma) {
 }
 
 template<class T> void
-matrix<3,3,T>::rotation(vec_type const &v) {
-	rotation(v.A,v.B,v.C);
-}
-
-template<class T> void
 matrix<3,3,T>::rotation(quaternion<T> const &q) {
 	T wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
 	T s  = detail::rotation_scale(q);
@@ -354,13 +349,6 @@ matrix<4,4,T>::rotation(T alpha,T beta,T gamma) {
 	ij[3][1] = 0;
 	ij[3][2] = 0;
 	ij[3][3] = 1;
-}
-
-template<class T> void
-matrix<4,4,T>::rotation(point_type const &v) {
-
-	rotation(v.x, v.y, v.z);
-
 }
 
 template<class T> void

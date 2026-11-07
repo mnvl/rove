@@ -43,7 +43,7 @@ template<int N> void
 test_rotation_i(rove::vec<3> const &src, rove::vec<3> const &angles, rove::vec<3> const &res)
 {
 	rove::matrix<N,N> m;
-	m.rotation(angles);
+	m.rotation(angles.x, angles.y, angles.z);
 
 	rove::vec<3> result = m * src;
 
@@ -61,6 +61,9 @@ void test_rotation(rove::vec<3> const &src, rove::vec<3> const &angles, rove::ve
 }
 
 }
+
+template<class M, class... A>
+concept rotation_takes = requires(M m, A... a) { m.rotation(a...); };
 
 BOOST_AUTO_TEST_SUITE (test_matrix)
 
@@ -799,13 +802,14 @@ BOOST_AUTO_TEST_CASE(axes_to_world_of_axes_with_no_inverse_says_so)
 	BOOST_TEST(m.axes_to_world(x, y, rove::vec<3>(0, 0, 1)));
 }
 
-// rotation(v) is the Euler angles of rotation(a, b, c): written so, and tested so
-BOOST_AUTO_TEST_CASE(rotation_of_a_vector_is_of_euler_angles)
+// Euler angles are three numbers: a vector of them was never a thing to keep, and read as a rotation vector it was wrong without a word
+BOOST_AUTO_TEST_CASE(a_rotation_is_not_set_from_a_vector_alone)
 {
-	rove::matrix<4,4> a, b;
-	a.rotation(rove::vec<3>(0.3f, 0.5f, 0.7f));
-	b.rotation(0.3f, 0.5f, 0.7f);
-	for (int c = 0; c < 4; ++c) for (int r = 0; r < 4; ++r) BOOST_TEST(a.ij[c][r] == b.ij[c][r]);
+	static_assert(!rotation_takes<rove::matrix<4,4>, rove::vec<3>>);
+	static_assert(!rotation_takes<rove::matrix<3,3>, rove::vec<3>>);
+	static_assert(rotation_takes<rove::matrix<4,4>, rove::quaternion<float>>);
+	static_assert(rotation_takes<rove::matrix<4,4>, float, float, float>);
+	static_assert(rotation_takes<rove::matrix<4,4>, rove::vec<3>, float>);
 }
 
 BOOST_AUTO_TEST_CASE(a_scale_too_small_for_its_determinant_has_no_inverse)
