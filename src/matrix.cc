@@ -166,11 +166,6 @@ matrix<3,3,T>::rotate(T alpha,T beta,T gamma) {
 }
 
 template<class T> void
-matrix<3,3,T>::rotate(vec_type const &v) {
-	rotate(v.A,v.B,v.C);
-}
-
-template<class T> void
 matrix<3,3,T>::rotate(quaternion_type const &q) {
 	matrix self = *this, temp;
 	temp.rotation(q);
@@ -420,11 +415,6 @@ matrix<4,4,T>::rotate(T alpha,T beta,T gamma) {
 	matrix self = *this, temp;
 	temp.rotation(alpha,beta,gamma);
 	detail::mul(*this,temp,self);
-}
-
-template<class T> void
-matrix<4,4,T>::rotate(point_type const &v) {
-	rotate(v.A,v.B,v.C);
 }
 
 template<class T> void

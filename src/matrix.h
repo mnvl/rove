@@ -163,9 +163,6 @@ public:
 	/// @brief Apply rotation from Euler angles
 	void rotate(T alpha,T beta,T gamma);
 
-	/// @brief Apply rotation from rotation vector
-	void rotate(vec_type const &v);
-
 	/// @brief Apply rotation from quaternion
 	void rotate(quaternion_type const &q);
 
@@ -411,9 +408,6 @@ public:
 
 	/// @brief Apply rotation from Euler angles
 	void rotate(T alpha,T beta,T gamma);
-
-	/// @brief Apply rotation from rotation vector
-	void rotate(point_type const &v);
 
 	/// @brief Apply rotation from quaternion
 	void rotate(quaternion_type const &q);

@@ -65,6 +65,9 @@ void test_rotation(rove::vec<3> const &src, rove::vec<3> const &angles, rove::ve
 template<class M, class... A>
 concept rotation_takes = requires(M m, A... a) { m.rotation(a...); };
 
+template<class M, class... A>
+concept rotate_takes = requires(M m, A... a) { m.rotate(a...); };
+
 BOOST_AUTO_TEST_SUITE (test_matrix)
 
 BOOST_AUTO_TEST_CASE (test_ijk)
@@ -810,6 +813,15 @@ BOOST_AUTO_TEST_CASE(a_rotation_is_not_set_from_a_vector_alone)
 	static_assert(rotation_takes<rove::matrix<4,4>, rove::quaternion<float>>);
 	static_assert(rotation_takes<rove::matrix<4,4>, float, float, float>);
 	static_assert(rotation_takes<rove::matrix<4,4>, rove::vec<3>, float>);
+}
+
+BOOST_AUTO_TEST_CASE(a_matrix_is_not_turned_by_a_vector_alone)
+{
+	static_assert(!rotate_takes<rove::matrix<4,4>, rove::vec<3>>);
+	static_assert(!rotate_takes<rove::matrix<3,3>, rove::vec<3>>);
+	static_assert(rotate_takes<rove::matrix<4,4>, rove::quaternion<float>>);
+	static_assert(rotate_takes<rove::matrix<4,4>, float, float, float>);
+	static_assert(rotate_takes<rove::matrix<4,4>, rove::vec<3>, float>);
 }
 
 BOOST_AUTO_TEST_CASE(a_scale_too_small_for_its_determinant_has_no_inverse)

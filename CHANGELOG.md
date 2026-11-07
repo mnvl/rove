@@ -42,8 +42,8 @@ What the independent review of 3.0.0 found.
 
 ### Changed
 
-- `matrix::rotation(vec)` is gone: it took Euler angles, and its documentation said a rotation vector. Use `rotation(alpha, beta, gamma)`, or
-  `rotation(from_rotation_vector(v))` for a rotation vector.
+- `matrix::rotation(vec)` and `matrix::rotate(vec)` are gone: they took Euler angles, and `rotation`'s documentation said a rotation vector. Use
+  `rotation(alpha, beta, gamma)` and `rotate(alpha, beta, gamma)`, or a quaternion: `rotation(from_rotation_vector(v))` for a rotation vector.
 - `Mat.inverse()` of a singular matrix raises `SingularMatrixError`, both a `ValueError` and the `RuntimeError` it was.
 
 ## [3.0.0] - 2026-11-06
