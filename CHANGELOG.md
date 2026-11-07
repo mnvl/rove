@@ -32,15 +32,18 @@ What the independent review of 3.0.0 found.
   include path; `<rove/src/x.h>` works in any checkout, from FetchContent and from an install. The headers compile after `<windows.h>`.
 - pyrove: crashes on an index past a matrix, a malformed pickle, a tree used from another thread. `pip install -e` imports. Every value type
   compares, hashes, pickles and copies by value. `raycast_batch` at any distance, and read-only arrays. `first_contact` of two spheres, and the
-  free functions the README names. `repr` shows every digit and the true type. Stubs and `py.typed`.
+  free functions the README names. `repr` shows every digit and the true type. Stubs made by the wheel's build, `py.typed`, and `help(pyrove)` lists every
+  function and overload.
 
 ### Added
 
+- `rove::isfinite`, `rove::isnan` and `rove::floor`, for code templated on the scalar, as `rove::sin`.
 - `<rove/version.h>`: `ROVE_VERSION`. `a_star::limit_cells`. `octree::copy_unbuilt`. `pcg32::state`, `increment`, `from_state`.
 
 ### Changed
 
-- `matrix::rotation(vec)` is documented as what it is: Euler angles, not a rotation vector.
+- `matrix::rotation(vec)` is gone: it took Euler angles, and its documentation said a rotation vector. Use `rotation(alpha, beta, gamma)`, or
+  `rotation(from_rotation_vector(v))` for a rotation vector.
 - `Mat.inverse()` of a singular matrix raises `SingularMatrixError`, both a `ValueError` and the `RuntimeError` it was.
 
 ## [3.0.0] - 2026-11-06

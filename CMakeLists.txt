@@ -238,8 +238,13 @@ if(ROVE_PYTHON)
     endif()
 
     # a wheel (scikit-build-core) puts the module inside the pyrove package
+    # and its signatures beside it, generated from the module itself (a checkout's build has no use for them, and a sanitized module
+    # cannot be imported to ask)
     if(SKBUILD)
         install(TARGETS pyrove_bind LIBRARY DESTINATION pyrove)
+        nanobind_add_stub(pyrove_bind_stub MODULE pyrove_bind OUTPUT pyrove_bind.pyi
+            PYTHON_PATH $<TARGET_FILE_DIR:pyrove_bind> DEPENDS pyrove_bind)
+        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pyrove_bind.pyi DESTINATION pyrove)
     endif()
 
     # pyrove's own tests (pytest and numpy), against the module just built

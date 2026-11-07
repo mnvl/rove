@@ -143,6 +143,25 @@ __all__ = [name for name in dir(_bindings) if not name.startswith("_") and name 
 # (`from __future__ import annotations` above leaves this name in the module)
 del annotations
 
+_DESCRIPTION = __doc__ or ""
+
+
+def _description_and_signatures() -> str:
+    """The description, and every function with its overloads: help() lists a nanobind function under no heading of its own."""
+    lines = []
+    for name in sorted(set(__all__) | _BUILTINS_KEPT):
+        for signature in getattr(globals().get(name), "__nb_signature__", ()):
+            lines.append("    " + _re.sub(r"\b(?:pyrove\.)?pyrove_bind\.", "", signature[0]).removeprefix("def "))
+    return _DESCRIPTION + "\nFunctions:\n\n" + "\n".join(lines) + "\n"
+
+
+class _Package(_ModuleType):
+    # (made when asked: it is for help(), and an import should not pay for it)
+    __doc__ = property(lambda self: _description_and_signatures())
+
+
+_sys.modules[__name__].__class__ = _Package
+
 
 def __dir__() -> list[str]:
     """The API, without the loader's own names."""

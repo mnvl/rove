@@ -49,10 +49,12 @@ def test_the_package_ships_its_types():
     package = Path(pyrove.__file__).parent
     assert (package / "py.typed").exists()
     assert (package / "__init__.pyi").exists()
-    stub = (package / "pyrove_bind.pyi").read_text(encoding="utf-8")
-    # (regenerate with nanobind's stubgen.py when the bindings change: every public name of the module has to be in it)
-    missing = [name for name in pyrove.__all__ if f"class {name}" not in stub and f"def {name}(" not in stub and f"{name}:" not in stub]
-    assert missing == []
+    # (made by a wheel's build; a checkout's CMake build has none, and its module is not in the package)
+    module = Path(pyrove._bindings.__file__)
+    if module.parent.name == "pyrove":
+        stub = (module.parent / "pyrove_bind.pyi").read_text(encoding="utf-8")
+        missing = [name for name in pyrove.__all__ if f"class {name}" not in stub and f"def {name}(" not in stub and f"{name}:" not in stub]
+        assert missing == []
 
 
 def test_every_public_class_says_what_it_is():
@@ -122,3 +124,25 @@ def test_every_place_that_says_the_version_says_the_same():
     in_port = json.loads((root / "ports" / "rove" / "vcpkg.json").read_text(encoding="utf-8"))["version"]
     in_changelog = re.search(r"^## \[([0-9.]+)\]", (root / "CHANGELOG.md").read_text(encoding="utf-8"), flags=re.M).group(1)
     assert {in_cmake, in_port, in_changelog, pyrove.__version__} == {in_cmake}
+
+
+# --- help() ---------------------------------------------------------------------------------------------------
+
+def test_help_of_the_package_lists_every_function_and_overload():
+    import pydoc
+    import pyrove
+    text = pydoc.render_doc(pyrove, renderer=pydoc.plaintext)
+    assert "dot(a: vec2, b: vec2) -> float" in text
+    assert "dot(a: vec3d, b: vec3d) -> float" in text
+    assert "normalize(v: vec3) -> vec3" in text
+    # every function the package has, with no internal names or placeholders of nanobind's
+    for name in pyrove.__all__:
+        if hasattr(getattr(pyrove, name), "__nb_signature__"):
+            assert f"{name}(" in text, name
+    assert "pyrove_bind." not in pyrove.__doc__
+    assert "\\" not in pyrove.__doc__
+
+
+def test_the_package_keeps_its_own_description():
+    import pyrove
+    assert pyrove.__doc__.startswith("rove's Python bindings")
