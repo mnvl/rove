@@ -106,10 +106,16 @@ template<class T> constexpr T constant_of(double v)
 
 }
 
-// (0 - s, not -s: the absolute value of a zero is +0, and a NaN stays one)
+// (by cases: the absolute value of a zero is +0, on every compiler, where MSVC folds 0 - (-0.0f) to -0; and a NaN stays one)
 template<class T> inline T
 abs(T s) {
-	return s > 0 ? s : T(0) - s;
+	if constexpr (std::is_unsigned_v<T>) {
+		return s;
+	} else {
+		if (s > T(0)) return s;
+		if (s < T(0)) return -s;
+		return s == T(0) ? T(0) : s;
+	}
 }
 
 // (Each through a using-declaration: for float, double and the integers the call is std::'s, as it always was; for a T of one's own,

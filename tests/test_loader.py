@@ -68,3 +68,46 @@ def test_the_version_is_the_projects():
     root = Path(__file__).resolve().parents[1]
     text = (root / "pyproject.toml").read_text(encoding="utf-8")
     assert pyrove.__version__ == re.search(r'^version = "(.*)"$', text, flags=re.M).group(1)
+
+
+# --- the variable and an installed package --------------------------------------------------------------------
+
+def _an_installed_package(tmp_path):
+    import shutil
+    import pyrove
+    package = tmp_path / "installed" / "pyrove"
+    package.mkdir(parents=True)
+    shutil.copy(Path(pyrove.__file__), package / "__init__.py")
+    shutil.copy(Path(pyrove._bindings.__file__), package)
+    return package
+
+
+def _which_binding(tmp_path, binding_dir):
+    import os
+    import subprocess
+    import sys
+    env = {**os.environ, "ROVE_PYTHON_BINDINGS_DIR": str(binding_dir), "PYTHONPATH": str(tmp_path / "installed")}
+    code = "import pyrove; print(pyrove._bindings.__file__)"
+    return subprocess.run([sys.executable, "-W", "always", "-c", code], capture_output=True, text=True, env=env, cwd=tmp_path)
+
+
+def test_a_variable_that_names_nothing_leaves_an_installed_package_its_own_module(tmp_path):
+    package = _an_installed_package(tmp_path)
+    (tmp_path / "empty").mkdir()
+    for nothing in (tmp_path / "empty", tmp_path / "missing"):
+        result = _which_binding(tmp_path, nothing)
+        assert result.returncode == 0, result.stderr
+        assert Path(result.stdout.strip()).parent == package
+        assert "ROVE_PYTHON_BINDINGS_DIR" in result.stderr
+
+
+def test_a_variable_that_names_a_module_picks_it(tmp_path):
+    import shutil
+    import pyrove
+    _an_installed_package(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    shutil.copy(Path(pyrove._bindings.__file__), elsewhere)
+    result = _which_binding(tmp_path, elsewhere)
+    assert result.returncode == 0, result.stderr
+    assert Path(result.stdout.strip()).parent == elsewhere

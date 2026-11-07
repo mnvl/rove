@@ -3,8 +3,8 @@
 
 """rove's Python bindings: vectors, matrices, quaternions, shapes, collisions, spatial indices and more.
 
-An installed pyrove (pip, or pip install -e) has its compiled module in the package.  Only a source checkout looks anywhere else, for
-the module CMake built: $ROVE_PYTHON_BINDINGS_DIR, else build/lib of the checkout or of the project it is a subdirectory of.
+An installed pyrove (pip, or pip install -e) has its compiled module in the package, unless $ROVE_PYTHON_BINDINGS_DIR names a directory that
+has one.  A source checkout finds the module CMake built: there, else build/lib of the checkout or of the project it is a subdirectory of.
 """
 from __future__ import annotations
 
@@ -75,19 +75,21 @@ def _guess_python_tags(paths: list[_Path]) -> list[str]:
 
 
 def _import_required_binding(module_name: str) -> _ModuleType:
-    # Installed: the module is part of the package, beside this file (a wheel) or where an editable install's import hook has it.  It is
-    # the right one whatever the environment says.
-    try:
-        module = _importlib.import_module(f"{__name__}.{module_name}")
-    except ModuleNotFoundError:
-        pass
-    else:
-        if _os.environ.get("ROVE_PYTHON_BINDINGS_DIR"):
-            _warnings.warn("ROVE_PYTHON_BINDINGS_DIR is for a source checkout: this pyrove is installed and has its own module",
-                           RuntimeWarning, stacklevel=2)
-        # (the classes' __module__ is pyrove_bind, so a pickle of one names it)
-        _sys.modules.setdefault(module_name, module)
-        return module
+    # Installed: the module is part of the package, beside this file (a wheel) or where an editable install's import hook has it.  The
+    # variable picks another where it names a directory that has one; one that names nothing is no reason to fail with the right module here.
+    explicit = _os.environ.get("ROVE_PYTHON_BINDINGS_DIR")
+    if not (explicit and _module_files(_Path(explicit).expanduser(), module_name)):
+        try:
+            module = _importlib.import_module(f"{__name__}.{module_name}")
+        except ModuleNotFoundError:
+            pass
+        else:
+            if explicit:
+                _warnings.warn(f"ROVE_PYTHON_BINDINGS_DIR={explicit} has no {module_name}: using the one this pyrove is installed with",
+                               RuntimeWarning, stacklevel=2)
+            # (the classes' __module__ is pyrove_bind, so a pickle of one names it)
+            _sys.modules.setdefault(module_name, module)
+            return module
 
     # A source checkout: the module CMake built (e.g. build/lib/pyrove_bind*.so).
     for candidate in _binding_dirs():
