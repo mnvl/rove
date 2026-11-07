@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/ndarray.h>
@@ -38,9 +39,9 @@ void bind_vec2(nb::module_ &m, char const *name) {
 		.def_rw("x", &Vec::x)
 		.def_rw("y", &Vec::y)
 		.def_prop_ro("xy", [](Vec const &v) { return nb::make_tuple(v.x, v.y); })
-		.def_static("from_numpy", [](nb::ndarray<T, nb::shape<2>> arr) {
+		.def_static("from_numpy", [](nb::ndarray<T const, nb::shape<2>> arr) {
 			return Vec(arr(0), arr(1));
-		}, nb::arg("array"), "Create vec2 from numpy array")
+		}, nb::arg("array"), "A vec2 from a numpy array of 2 numbers, read-only or not; numbers of another type are converted to this one's (rounded, for float64 to a float32 vec2)")
 		.def("to_numpy", [](Vec const &v) {
 			T* data = new T[2]{v.x, v.y};
 			size_t shape[1] = {2};
@@ -72,8 +73,8 @@ void bind_vec2(nb::module_ &m, char const *name) {
 		.def("__imul__", nb::overload_cast<const T>(&Vec::operator*=), nb::arg("k"), nb::rv_policy::none)
 		.def("__itruediv__", nb::overload_cast<Vec const &>(&Vec::operator/=), nb::arg("v"), nb::rv_policy::none)
 		.def("__itruediv__", nb::overload_cast<const T>(&Vec::operator/=), nb::arg("k"), nb::rv_policy::none)
-		.def("__eq__", [](Vec const &a, Vec const &b) { return a == b; })
-		.def("__ne__", [](Vec const &a, Vec const &b) { return a != b; })
+		.def("__eq__", [](Vec const &a, Vec const &b) { return a == b; }, nb::is_operator())
+		.def("__ne__", [](Vec const &a, Vec const &b) { return a != b; }, nb::is_operator())
 		.def("__hash__", [](Vec const &v) { return hash_components(v.i); })
 		.def("__len__", [](Vec const &) { return 2; })
 		.def("__getitem__", [](Vec const &v, Py_ssize_t k) -> T {
@@ -81,12 +82,17 @@ void bind_vec2(nb::module_ &m, char const *name) {
 			if (k < 0 || k >= 2) throw nb::index_error();
 			return v.i[k];
 		})
+		.def("__setitem__", [](Vec &v, Py_ssize_t k, T value) {
+			if (k < 0) k += 2;
+			if (k < 0 || k >= 2) throw nb::index_error();
+			v.i[k] = value;
+		})
 		.def("__iter__", [](Vec &v) {
 			return nb::make_iterator(nb::type<Vec>(), "vec2_iterator", &v.i[0], &v.i[2]);
 		}, nb::keep_alive<0, 1>())
-		.def("__repr__", [](Vec const &v) {
-			std::ostringstream ss;
-			ss << "vec2(" << v.x << ", " << v.y << ")";
+		.def("__repr__", [name](Vec const &v) {
+			bind_text::repr_stream ss;
+			ss << name << "(" << v.x << ", " << v.y << ")";
 			return ss.str();
 		})
 		.def("dot", [](Vec const &a, Vec const &b) { return rove::dot(a, b); })
@@ -94,6 +100,7 @@ void bind_vec2(nb::module_ &m, char const *name) {
 			return nb::make_tuple(v.x, v.y);
 		})
 		.def("__setstate__", [](Vec &v, nb::tuple t) {
+			check_state(t, 2, "Vec.__setstate__");
 			v.x = nb::cast<T>(t[0]);
 			v.y = nb::cast<T>(t[1]);
 		});
@@ -111,9 +118,9 @@ void bind_vec3(nb::module_ &m, char const *name) {
 		.def_rw("z", &Vec::z)
 		.def_prop_ro("xy", [](Vec const &v) { return nb::make_tuple(v.x, v.y); })
 		.def_prop_ro("xyz", [](Vec const &v) { return nb::make_tuple(v.x, v.y, v.z); })
-		.def_static("from_numpy", [](nb::ndarray<T, nb::shape<3>> arr) {
+		.def_static("from_numpy", [](nb::ndarray<T const, nb::shape<3>> arr) {
 			return Vec(arr(0), arr(1), arr(2));
-		}, nb::arg("array"), "Create vec3 from numpy array")
+		}, nb::arg("array"), "A vec3 from a numpy array of 3 numbers, read-only or not; numbers of another type are converted to this one's (rounded, for float64 to a float32 vec3)")
 		.def("to_numpy", [](Vec const &v) {
 			T* data = new T[3]{v.x, v.y, v.z};
 			size_t shape[1] = {3};
@@ -144,8 +151,8 @@ void bind_vec3(nb::module_ &m, char const *name) {
 		.def("__imul__", nb::overload_cast<const T>(&Vec::operator*=), nb::arg("k"), nb::rv_policy::none)
 		.def("__itruediv__", nb::overload_cast<Vec const &>(&Vec::operator/=), nb::arg("v"), nb::rv_policy::none)
 		.def("__itruediv__", nb::overload_cast<const T>(&Vec::operator/=), nb::arg("k"), nb::rv_policy::none)
-		.def("__eq__", [](Vec const &a, Vec const &b) { return a == b; })
-		.def("__ne__", [](Vec const &a, Vec const &b) { return a != b; })
+		.def("__eq__", [](Vec const &a, Vec const &b) { return a == b; }, nb::is_operator())
+		.def("__ne__", [](Vec const &a, Vec const &b) { return a != b; }, nb::is_operator())
 		.def("__hash__", [](Vec const &v) { return hash_components(v.i); })
 		.def("__len__", [](Vec const &) { return 3; })
 		.def("__getitem__", [](Vec const &v, Py_ssize_t k) -> T {
@@ -153,12 +160,17 @@ void bind_vec3(nb::module_ &m, char const *name) {
 			if (k < 0 || k >= 3) throw nb::index_error();
 			return v.i[k];
 		})
+		.def("__setitem__", [](Vec &v, Py_ssize_t k, T value) {
+			if (k < 0) k += 3;
+			if (k < 0 || k >= 3) throw nb::index_error();
+			v.i[k] = value;
+		})
 		.def("__iter__", [](Vec &v) {
 			return nb::make_iterator(nb::type<Vec>(), "vec3_iterator", &v.i[0], &v.i[3]);
 		}, nb::keep_alive<0, 1>())
-		.def("__repr__", [](Vec const &v) {
-			std::ostringstream ss;
-			ss << "vec3(" << v.x << ", " << v.y << ", " << v.z << ")";
+		.def("__repr__", [name](Vec const &v) {
+			bind_text::repr_stream ss;
+			ss << name << "(" << v.x << ", " << v.y << ", " << v.z << ")";
 			return ss.str();
 		})
 		.def("dot", [](Vec const &a, Vec const &b) { return rove::dot(a, b); })
@@ -171,6 +183,7 @@ void bind_vec3(nb::module_ &m, char const *name) {
 			return nb::make_tuple(v.x, v.y, v.z);
 		})
 		.def("__setstate__", [](Vec &v, nb::tuple t) {
+			check_state(t, 3, "Vec.__setstate__");
 			v.x = nb::cast<T>(t[0]);
 			v.y = nb::cast<T>(t[1]);
 			v.z = nb::cast<T>(t[2]);
@@ -192,9 +205,9 @@ void bind_vec4(nb::module_ &m, char const *name) {
 		.def_prop_ro("xy", [](Vec const &v) { return nb::make_tuple(v.x, v.y); })
 		.def_prop_ro("xyz", [](Vec const &v) { return nb::make_tuple(v.x, v.y, v.z); })
 		.def_prop_ro("xyzw", [](Vec const &v) { return nb::make_tuple(v.x, v.y, v.z, v.w); })
-		.def_static("from_numpy", [](nb::ndarray<T, nb::shape<4>> arr) {
+		.def_static("from_numpy", [](nb::ndarray<T const, nb::shape<4>> arr) {
 			return Vec(arr(0), arr(1), arr(2), arr(3));
-		}, nb::arg("array"), "Create vec4 from numpy array")
+		}, nb::arg("array"), "A vec4 from a numpy array of 4 numbers, read-only or not; numbers of another type are converted to this one's (rounded, for float64 to a float32 vec4)")
 		.def("to_numpy", [](Vec const &v) {
 			T* data = new T[4]{v.x, v.y, v.z, v.w};
 			size_t shape[1] = {4};
@@ -224,8 +237,8 @@ void bind_vec4(nb::module_ &m, char const *name) {
 		.def("__imul__", nb::overload_cast<const T>(&Vec::operator*=), nb::arg("k"), nb::rv_policy::none)
 		.def("__itruediv__", nb::overload_cast<Vec const &>(&Vec::operator/=), nb::arg("v"), nb::rv_policy::none)
 		.def("__itruediv__", nb::overload_cast<const T>(&Vec::operator/=), nb::arg("k"), nb::rv_policy::none)
-		.def("__eq__", [](Vec const &a, Vec const &b) { return a == b; })
-		.def("__ne__", [](Vec const &a, Vec const &b) { return a != b; })
+		.def("__eq__", [](Vec const &a, Vec const &b) { return a == b; }, nb::is_operator())
+		.def("__ne__", [](Vec const &a, Vec const &b) { return a != b; }, nb::is_operator())
 		.def("__hash__", [](Vec const &v) { return hash_components(v.i); })
 		.def("__len__", [](Vec const &) { return 4; })
 		.def("__getitem__", [](Vec const &v, Py_ssize_t k) -> T {
@@ -233,12 +246,17 @@ void bind_vec4(nb::module_ &m, char const *name) {
 			if (k < 0 || k >= 4) throw nb::index_error();
 			return v.i[k];
 		})
+		.def("__setitem__", [](Vec &v, Py_ssize_t k, T value) {
+			if (k < 0) k += 4;
+			if (k < 0 || k >= 4) throw nb::index_error();
+			v.i[k] = value;
+		})
 		.def("__iter__", [](Vec &v) {
 			return nb::make_iterator(nb::type<Vec>(), "vec4_iterator", &v.i[0], &v.i[4]);
 		}, nb::keep_alive<0, 1>())
-		.def("__repr__", [](Vec const &v) {
-			std::ostringstream ss;
-			ss << "vec4(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
+		.def("__repr__", [name](Vec const &v) {
+			bind_text::repr_stream ss;
+			ss << name << "(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
 			return ss.str();
 		})
 		.def("dot", [](Vec const &a, Vec const &b) { return rove::dot(a, b); })
@@ -246,6 +264,7 @@ void bind_vec4(nb::module_ &m, char const *name) {
 			return nb::make_tuple(v.x, v.y, v.z, v.w);
 		})
 		.def("__setstate__", [](Vec &v, nb::tuple t) {
+			check_state(t, 4, "Vec.__setstate__");
 			v.x = nb::cast<T>(t[0]);
 			v.y = nb::cast<T>(t[1]);
 			v.z = nb::cast<T>(t[2]);
@@ -275,6 +294,12 @@ static void bind_vec_operations(nb::module_ &m) {
 	m.def("clamp", [](Vec const &v, T lo, T hi) { return rove::clamp(v, lo, hi); }, nb::arg("v"), nb::arg("lo"), nb::arg("hi"),
 		"Each component between lo and hi");
 	m.def("is_finite", [](Vec const &v) { return rove::is_finite(v); }, nb::arg("v"));
+	m.def("length", [](Vec const &v) { return v.length(); }, nb::arg("v"));
+	m.def("length_sq", [](Vec const &v) { return v.length_sq(); }, nb::arg("v"));
+	m.def("distance", [](Vec const &a, Vec const &b) { return (a - b).length(); }, nb::arg("a"), nb::arg("b"));
+	m.def("distance_sq", [](Vec const &a, Vec const &b) { return (a - b).length_sq(); }, nb::arg("a"), nb::arg("b"));
+	m.def("lerp", [](Vec const &a, Vec const &b, T t) { return rove::lerp(a, b, t); }, nb::arg("a"), nb::arg("b"), nb::arg("t"),
+		"a + (b - a) t, component by component, unclamped");
 	m.def("project", [](Vec const &v, Vec const &onto) { return rove::project(v, onto); }, nb::arg("v"), nb::arg("onto"),
 		"The part of v along onto (any length but none: ValueError)");
 	m.def("reject", [](Vec const &v, Vec const &onto) { return rove::reject(v, onto); }, nb::arg("v"), nb::arg("onto"),

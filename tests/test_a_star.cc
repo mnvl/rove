@@ -316,7 +316,10 @@ BOOST_AUTO_TEST_CASE(a_big_search_is_fast_enough_to_run_once_a_second_with_room_
 	double const ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
 	BOOST_REQUIRE(!finder.have_failed());
 	BOOST_TEST_MESSAGE("800 x 800 grid, path of " << finder.build_path().size() << " cells, " << finder.expanded() << " expanded: " << ms << " ms");
+	// Only where the speed means anything: Debug and sanitizer builds run many times slower (281 to 647 ms) and say nothing of it.
+#if defined(NDEBUG) && !defined(__SANITIZE_ADDRESS__) && !defined(__SANITIZE_THREAD__)
 	BOOST_TEST(ms < 200.0);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(a_search_confined_to_a_box_finds_what_the_unconfined_one_does_and_never_leaves_it)
@@ -391,6 +394,48 @@ BOOST_AUTO_TEST_CASE(the_cost_map_of_a_confined_search_is_its_box)
 	rove::a_star<random_grid> free_search(pt(0, 0), pt(3, 3), make_grid(8, 8, 1, 0, 1));
 	free_search.calculate_cost_map();
 	BOOST_CHECK_THROW(free_search.build_cost_map(), std::logic_error);
+}
+
+// An open plane, no box and a goal walled off: the search has to stop somewhere for have_failed() to be true
+BOOST_AUTO_TEST_CASE(a_search_of_an_unbounded_scorer_stops_at_its_limit_and_fails)
+{
+	struct walled_off {
+		rove::scalar operator()(rove::vec<2, int> const &c) const
+		{
+			return (c.x == 10 && c.y == 10) ? -1.0f : 1.0f;
+		}
+	};
+	rove::a_star<walled_off> finder(rove::vec<2, int>(0, 0), rove::vec<2, int>(10, 10), walled_off());
+	finder.limit_cells(5000);
+	finder.calculate_path();
+	BOOST_TEST(finder.have_failed());
+	BOOST_TEST(finder.build_path().empty());
+}
+
+BOOST_AUTO_TEST_CASE(a_limit_that_is_enough_finds_the_path)
+{
+	struct open_plane {
+		rove::scalar operator()(rove::vec<2, int> const &) const { return 1; }
+	};
+	rove::a_star<open_plane> finder(rove::vec<2, int>(0, 0), rove::vec<2, int>(10, 10), open_plane());
+	finder.limit_cells(5000);
+	finder.calculate_path();
+	BOOST_TEST(!finder.have_failed());
+	BOOST_TEST(finder.build_path().size() == 11u);
+	BOOST_CHECK_THROW(finder.limit_cells(0), std::invalid_argument);
+}
+
+// The box already bounds a search: a limit below it does not cut it short
+BOOST_AUTO_TEST_CASE(a_limit_does_not_apply_inside_a_box)
+{
+	struct walled_off {
+		rove::scalar operator()(rove::vec<2, int> const &c) const { return (c.x == 50 && c.y == 50) ? -1.0f : 1.0f; }
+	};
+	rove::a_star<walled_off> finder(rove::vec<2, int>(0, 0), rove::vec<2, int>(99, 99), walled_off());
+	finder.restrict_to(rove::vec<2, int>(0, 0), rove::vec<2, int>(100, 100));
+	finder.limit_cells(10);
+	finder.calculate_path();
+	BOOST_TEST(!finder.have_failed());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -110,12 +110,25 @@ public:
 	}
 
 	/**
+	 * @brief How many cells a search with no box (restrict_to()) visits before it gives up, have_failed() true: 2^26 unless set
+	 *
+	 * That default is a few gigabytes and some seconds.  A box already bounds a search, so this does not apply in one.  0 is
+	 * std::invalid_argument.
+	 */
+	void limit_cells(size_t cells)
+	{
+		if (cells == 0) throw std::invalid_argument("a_star::limit_cells: a search visits at least its start");
+		cell_limit_ = cells;
+	}
+
+	/**
 	 * @brief Find a cheapest path from start to goal
 	 *
 	 * After this call, have_failed() / build_path() are valid.
 	 *
 	 * If the goal is unreachable (blocked or disconnected from start),
-	 * have_failed() returns true and build_path() returns an empty vector.
+	 * have_failed() returns true and build_path() returns an empty vector.  With no box (restrict_to()) a scorer that opens unbounded
+	 * space has no end to search, so the search gives up the same way at limit_cells() cells.
 	 * build_cost_map() will contain g-values only for the cells that were
 	 * reached before the search exhausted the reachable region.
 	 */
@@ -254,6 +267,7 @@ private:
 	int box_w_ = 0, box_h_ = 0;
 	size_t expanded_ = 0;
 
+	size_t cell_limit_ = size_t(1) << 26;
 	std::vector<node> nodes_;
 	std::vector<int32_t> table_;          ///< open addressing: node index or -1, a power of two long
 	std::vector<open_entry> open_;        ///< a binary min-heap on f
@@ -329,7 +343,7 @@ private:
 	{
 		if (!goal_directed_) return 0;
 		scalar const dx = scalar(std::abs(p.x - goal_.x)), dy = scalar(std::abs(p.y - goal_.y));
-		return tie_break * min_cell_cost_ * (std::max(dx, dy) + (sqrt2 - 1) * std::min(dx, dy));
+		return tie_break * min_cell_cost_ * ((std::max)(dx, dy) + (sqrt2 - 1) * (std::min)(dx, dy));
 	}
 
 	/// Cheapest f first; of equal f the one further along (larger g), which keeps a search across open ground to the straight band
@@ -388,6 +402,10 @@ private:
 			if (nodes_[e.index].closed || e.g > nodes_[e.index].g) continue;      // stale: a cheaper way to it was found since
 
 			if (stop_at_goal && nodes_[e.index].p == goal_) return;
+			if (!bounded_ && nodes_.size() > cell_limit_) {
+				failed_ = true;
+				return;
+			}
 
 			nodes_[e.index].closed = true;
 			++expanded_;

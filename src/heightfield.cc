@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#include <cmath>
 #include <stdexcept>
 #include <utility>
 #include <cstdint>
@@ -14,7 +15,7 @@ namespace rove
 {
 
 template<class T>
-heightfield<T>::heightfield(matrix<4,4> const &tf, size_t nrows, size_t ncols):
+heightfield<T>::heightfield(matrix<4,4> const &tf, size_t ncols, size_t nrows):
 	ncols_(ncols),
 	nrows_(nrows)
 {
@@ -36,8 +37,8 @@ scalar heightfield<T>::y_under(vec<3> const &position, scalar default_value)
 {
 	vec<3> local_position = world_to_local_ * position;
 
-	int col = int(local_position.x);
-	int row = int(local_position.z);
+	int col = int(std::floor(local_position.x));
+	int row = int(std::floor(local_position.z));
 
 	if (col < 0 || row < 0 || col >= int(ncols_) - 1 || row >= int(nrows_) - 1) return default_value;
 
@@ -47,7 +48,7 @@ scalar heightfield<T>::y_under(vec<3> const &position, scalar default_value)
 	scalar v4 = local_y_at(col + 1, row + 1);
 
 	scalar k1 = local_position.x - col;
-	scalar k2 = local_position.z - col;
+	scalar k2 = local_position.z - row;
 
 	scalar v12 = v1 * (1 - k1) + v2 * k1;
 	scalar v34 = v3 * (1 - k1) + v4 * k1;
@@ -76,8 +77,8 @@ scalar heightfield<T>::max_y_in_cell(vec<3> const &position, scalar default_valu
 {
 	vec<3> local_position = world_to_local_ * position;
 
-	int col = int(local_position.x);
-	int row = int(local_position.z);
+	int col = int(std::floor(local_position.x));
+	int row = int(std::floor(local_position.z));
 
 	return max_y_in_cell(col, row, default_value);
 }
@@ -93,7 +94,7 @@ template<class T> typename heightfield<T>::cell_type
 heightfield<T>::world_position_to_cell(vec<3> const &position) const
 {
 	vec<3> p = world_to_local_ * position;
-	return cell_type(int(p.x), int(p.z));
+	return cell_type(int(std::floor(p.x)), int(std::floor(p.z)));
 }
 
 template<class T>
@@ -105,13 +106,17 @@ vec<3> heightfield<T>::cell_to_world_position(cell_type const &cell) const
 template<class T>
 contact_info<3> heightfield<T>::trace(ray<3> const &r, scalar max_distance) const
 {
-	vec<3> local_p0 = world_to_local_ * r.r0;
-	vec<3> local_p1 = world_to_local_ * (r.r0 + normalize_or_zero(r.a) * max_distance);
-
-	ray<3> local_ray(local_p0, local_p1 - local_p0);
-
 	contact_info<3> result;
 	result.happened = false;
+
+	// (a line of samples has no cell, so nothing to hit)
+	if (ncols_ < 2 || nrows_ < 2) return result;
+
+	vec<3> const direction = normalize_or_zero(r.a);
+	vec<3> local_p0 = world_to_local_ * r.r0;
+	vec<3> local_p1 = world_to_local_ * (r.r0 + direction * max_distance);
+
+	ray<3> local_ray(local_p0, local_p1 - local_p0);
 
 	scalar local_ray_t0, local_ray_t1;
 
@@ -176,7 +181,16 @@ contact_info<3> heightfield<T>::trace(ray<3> const &r, scalar max_distance) cons
 		}
 	}
 
+	if (!result.happened) return result;
+
+	// The answer is in the terms of the ray it was asked with.  Here time ran over the local ray, 1 at max_distance along r.
 	result.position = local_to_world_ * result.position;
+	vec<3> const local_normal = result.normal;
+	for (int i = 0; i < 3; ++i)
+		result.normal.i[i] = world_to_local_.ij[i][0] * local_normal.x + world_to_local_.ij[i][1] * local_normal.y
+			+ world_to_local_.ij[i][2] * local_normal.z;
+	result.normal = normalize(result.normal);
+	result.time = result.time * max_distance / r.a.length();
 
 	return result;
 }
@@ -228,8 +242,9 @@ public:
 	{
 		if (cell.x < 0) return -1;
 		if (cell.y < 0) return -1;
-		if (cell.x >= int(hf_->nrows())) return -1;
-		if (cell.y >= int(hf_->ncols())) return -1;
+		// (n samples make n - 1 cells)
+		if (cell.x >= int(hf_->ncols()) - 1) return -1;
+		if (cell.y >= int(hf_->nrows()) - 1) return -1;
 
 		typename obstacles_type::const_iterator it = obstacles_.find(cell);
 		if (it != obstacles_.end()) return -1;

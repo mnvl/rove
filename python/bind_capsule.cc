@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <sstream>
@@ -38,15 +39,16 @@ void bind_capsule2(nb::module_ &m, char const *name) {
 		.def("distance", &Capsule::distance,
 			 nb::arg("point"),
 			 "Get distance from capsule surface to point (0 if inside)")
-		.def("__repr__", [](Capsule const &c) {
-			std::ostringstream ss;
-			ss << "capsule2(A=" << c.axe.A << ", B=" << c.axe.B << ", radius=" << c.radius << ")";
+		.def("__repr__", [name](Capsule const &c) {
+			bind_text::repr_stream ss;
+			ss << name << "(A=" << c.axe.A << ", B=" << c.axe.B << ", radius=" << c.radius << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Capsule const &c) {
 			return nb::make_tuple(c.axe.A, c.axe.B, c.radius);
 		})
 		.def("__setstate__", [](Capsule &c, nb::tuple t) {
+			check_state(t, 3, "Capsule.__setstate__");
 			c.axe.A = nb::cast<Vec2>(t[0]);
 			c.axe.B = nb::cast<Vec2>(t[1]);
 			c.radius = nb::cast<T>(t[2]);
@@ -81,15 +83,16 @@ void bind_capsule3(nb::module_ &m, char const *name) {
 			 static_cast<bool (Capsule::*)(Capsule const &) const>(&Capsule::test_intersection),
 			 nb::arg("other"),
 			 "Test if capsule intersects another capsule")
-		.def("__repr__", [](Capsule const &c) {
-			std::ostringstream ss;
-			ss << "capsule3(A=" << c.axe.A << ", B=" << c.axe.B << ", radius=" << c.radius << ")";
+		.def("__repr__", [name](Capsule const &c) {
+			bind_text::repr_stream ss;
+			ss << name << "(A=" << c.axe.A << ", B=" << c.axe.B << ", radius=" << c.radius << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Capsule const &c) {
 			return nb::make_tuple(c.axe.A, c.axe.B, c.radius);
 		})
 		.def("__setstate__", [](Capsule &c, nb::tuple t) {
+			check_state(t, 3, "Capsule.__setstate__");
 			c.axe.A = nb::cast<Vec3>(t[0]);
 			c.axe.B = nb::cast<Vec3>(t[1]);
 			c.radius = nb::cast<T>(t[2]);

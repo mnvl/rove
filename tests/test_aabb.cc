@@ -517,5 +517,124 @@ BOOST_AUTO_TEST_CASE(check_finite_refuses_a_corner_that_is_not_finite)
 	}
 }
 
+// A ray that starts inside the box has entered it: the time of entry is t_min, whichever way the ray points
+BOOST_AUTO_TEST_CASE(trace_from_the_centre_hits_in_every_direction)
+{
+	rove::aabb<3> b(rove::vec<3>(0, 0, 0), rove::vec<3>(1, 1, 1));
+	rove::vec<3> const centre(0.5f, 0.5f, 0.5f);
+	float const directions[][3] = { {1, -0.2f, 0}, {1, 0.2f, 0}, {-1, 0.2f, 0.1f}, {0.1f, -1, -0.3f}, {0, 0, -1}, {0.3f, 0.3f, 1} };
+	for (auto const &d : directions) {
+		rove::vec<3> const dir(d[0], d[1], d[2]);
+		float t0 = -1, t1 = -1;
+		BOOST_REQUIRE(b.trace(rove::ray<3>(centre, dir), &t0, &t1, 0, 100));
+		BOOST_TEST(t0 == 0.0f);
+		// the far face is where one coordinate of the point first reaches it
+		rove::vec<3> const p = centre + dir * t1;
+		BOOST_TEST(std::max({std::abs(p.x - 0.5f), std::abs(p.y - 0.5f), std::abs(p.z - 0.5f)}) == 0.5f, boost::test_tools::tolerance(1e-5f));
+	}
+}
+
+BOOST_AUTO_TEST_CASE(trace_of_a_segment_wholly_inside_hits_for_its_whole_length)
+{
+	rove::aabb<3> b(rove::vec<3>(0, 0, 0), rove::vec<3>(1, 1, 1));
+	rove::ray<3> const r(rove::vec<3>(0.4f, 0.4f, 0.4f), rove::vec<3>(0.1f, 0.1f, 0));
+	float t0 = -1, t1 = -1;
+	BOOST_REQUIRE(b.trace(r, &t0, &t1));
+	BOOST_TEST(t0 == 0.0f);
+	BOOST_TEST(t1 == 1.0f);
+	BOOST_TEST(b.trace(r));
+}
+
+BOOST_AUTO_TEST_CASE(trace_counts_a_touch_at_exactly_t_max_and_at_exactly_t_min)
+{
+	rove::aabb<3> b(rove::vec<3>(0, 0, 0), rove::vec<3>(1, 1, 1));
+	rove::ray<3> const r(rove::vec<3>(-2, 0.5f, 0.5f), rove::vec<3>(1, 0, 0));
+	float t0, t1;
+	BOOST_REQUIRE(b.trace(r, &t0, &t1, 0, 2));
+	BOOST_TEST(t0 == 2.0f);
+	BOOST_TEST(t1 == 2.0f);
+	BOOST_REQUIRE(b.trace(r, &t0, &t1, 3, 10));
+	BOOST_TEST(t0 == 3.0f);
+	BOOST_TEST(t1 == 3.0f);
+	BOOST_TEST(!b.trace(r, &t0, &t1, 0, 1.999f));
+	BOOST_TEST(!b.trace(r, &t0, &t1, 3.001f, 10));
+}
+
+// The interval is the part of [t_min, t_max] in the box, for a box that is not the unit box
+BOOST_AUTO_TEST_CASE(trace_interval_of_a_scaled_box_along_all_the_axes)
+{
+	rove::aabb<3> b(rove::vec<3>(10, -20, 30), rove::vec<3>(12, -10, 70));
+	rove::ray<3> const r(rove::vec<3>(11, -30, 50), rove::vec<3>(0, 1, 0));
+	float t0, t1;
+	BOOST_REQUIRE(b.trace(r, &t0, &t1, 0, 100));
+	BOOST_TEST(t0 == 10.0f);
+	BOOST_TEST(t1 == 20.0f);
+	BOOST_REQUIRE(b.trace(r, &t0, &t1, 12, 15));
+	BOOST_TEST(t0 == 12.0f);
+	BOOST_TEST(t1 == 15.0f);
+}
+
+BOOST_AUTO_TEST_CASE(trace_of_a_ray_with_no_direction_hits_only_inside)
+{
+	rove::aabb<3> b(rove::vec<3>(0, 0, 0), rove::vec<3>(1, 1, 1));
+	float t0, t1;
+	BOOST_TEST(b.trace(rove::ray<3>(rove::vec<3>(0.5f, 0.5f, 0.5f), rove::vec<3>(0, 0, 0)), &t0, &t1));
+	BOOST_TEST(t0 == 0.0f);
+	BOOST_TEST(t1 == 1.0f);
+	BOOST_TEST(!b.trace(rove::ray<3>(rove::vec<3>(2, 0.5f, 0.5f), rove::vec<3>(0, 0, 0)), &t0, &t1));
+}
+
+BOOST_AUTO_TEST_CASE(trace_through_a_box_flat_on_one_axis_hits_it)
+{
+	rove::aabb<3> b(rove::vec<3>(0, 0, 0), rove::vec<3>(1, 0, 1));
+	float t0, t1;
+	BOOST_REQUIRE(b.trace(rove::ray<3>(rove::vec<3>(0.5f, 1, 0.5f), rove::vec<3>(0, -1, 0)), &t0, &t1, 0, 10));
+	BOOST_TEST(t0 == 1.0f);
+	BOOST_TEST(t1 == 1.0f);
+	BOOST_TEST(!b.trace(rove::ray<3>(rove::vec<3>(2, 1, 0.5f), rove::vec<3>(0, -1, 0)), 0, 10));
+}
+
+BOOST_AUTO_TEST_CASE(trace_misses_an_empty_box)
+{
+	rove::aabb<3> b;
+	BOOST_TEST(!b.trace(rove::ray<3>(rove::vec<3>(0, 0, 0), rove::vec<3>(1, 1, 1)), -1e6f, 1e6f));
+}
+
+BOOST_AUTO_TEST_CASE(trace_of_a_rectangle)
+{
+	rove::aabb<2> b(rove::vec<2>(1, 1), rove::vec<2>(3, 2));
+	float t0, t1;
+	BOOST_REQUIRE(b.trace(rove::ray<2>(rove::vec<2>(0, 1.5f), rove::vec<2>(1, 0)), &t0, &t1, 0, 10));
+	BOOST_TEST(t0 == 1.0f);
+	BOOST_TEST(t1 == 3.0f);
+	// from inside
+	BOOST_REQUIRE(b.trace(rove::ray<2>(rove::vec<2>(2, 1.5f), rove::vec<2>(1, 0)), &t0, &t1, 0, 10));
+	BOOST_TEST(t0 == 0.0f);
+	BOOST_TEST(t1 == 1.0f);
+	BOOST_TEST(!b.trace(rove::ray<2>(rove::vec<2>(0, 3), rove::vec<2>(1, 0)), 0, 10));
+	rove::aabb<2, double> d(rove::vec<2, double>(1, 1), rove::vec<2, double>(3, 2));
+	BOOST_TEST(d.trace(rove::ray<2, double>(rove::vec<2, double>(0, 1.5), rove::vec<2, double>(1, 0)), 0, 10));
+}
+
+BOOST_AUTO_TEST_CASE(extending_by_an_empty_box_changes_nothing)
+{
+	rove::aabb<3> b(rove::vec<3>(0, 0, 0), rove::vec<3>(1, 1, 1));
+	b.extend(rove::aabb<3>());
+	BOOST_TEST(b.lo == rove::vec<3>(0, 0, 0));
+	BOOST_TEST(b.hi == rove::vec<3>(1, 1, 1));
+	rove::aabb<3> empty;
+	empty.extend(rove::aabb<3>());
+	BOOST_TEST(empty.is_empty());
+	empty.extend(b);
+	BOOST_TEST(empty.lo == b.lo);
+	BOOST_TEST(empty.hi == b.hi);
+}
+
+BOOST_AUTO_TEST_CASE(a_rectangle_has_four_edges_and_a_box_twelve)
+{
+	BOOST_TEST(rove::aabb<2>::edges_count == 4u);
+	BOOST_TEST(rove::aabb<3>::edges_count == 12u);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 

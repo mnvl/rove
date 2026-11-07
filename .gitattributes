@@ -1,0 +1,8 @@
+# The same bytes on every platform: a wheel built on Windows has LF in its .py files too
+* text=auto
+*.py text eol=lf
+*.pyi text eol=lf
+*.cc text eol=lf
+*.h text eol=lf
+*.cmake text eol=lf
+*.sh text eol=lf

@@ -186,10 +186,10 @@ bool capsule_intersects_triangle(capsule<3, T> const &capsule_shape, triangle<3,
 		T const dist_a = dot(normal, capsule_shape.axe.A - tri.A);
 		T const dist_b = dot(normal, capsule_shape.axe.B - tri.A);
 		T t = T(0);
-		if (std::abs(dist_a - dist_b) > scalar_traits<T>::zero_length) {
+		if (abs(dist_a - dist_b) > scalar_traits<T>::zero_length) {
 			t = clamp(dist_a / (dist_a - dist_b));
 		} else {
-			t = T(0.5);
+			t = detail::constant_of<T>(0.5);
 		}
 
 		vec<3, T> const axis_point = capsule_shape.axe.A + axis * t;
@@ -213,6 +213,12 @@ template bool segment_intersects_triangle(segment<3, double> const &, triangle<3
 
 template bool segment_intersects_triangle(vec<3, scalar> const &, vec<3, scalar> const &, triangle<3, scalar> const &);
 template bool segment_intersects_triangle(vec<3, double> const &, vec<3, double> const &, triangle<3, double> const &);
+#ifdef ROVE_DFLOAT
+template dfloat point_triangle_distance_sq(vec<3, dfloat> const &, triangle<3, dfloat> const &);
+template bool segment_intersects_triangle(segment<3, dfloat> const &, triangle<3, dfloat> const &);
+template bool segment_intersects_triangle(vec<3, dfloat> const &, vec<3, dfloat> const &, triangle<3, dfloat> const &);
+template bool capsule_intersects_triangle(capsule<3, dfloat> const &, triangle<3, dfloat> const &);
+#endif
 
 template bool capsule_intersects_triangle(capsule<3, scalar> const &, triangle<3, scalar> const &);
 template bool capsule_intersects_triangle(capsule<3, double> const &, triangle<3, double> const &);

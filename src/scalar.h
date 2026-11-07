@@ -89,13 +89,51 @@ sign(T x, T epsilon = scalar_traits<T>::default_epsilon) {
 	return 0;
 }
 
+namespace detail
+{
+
+// For code templated on the scalar (a T of one's own, like dfloat, has its own functions, and its constructor refuses a double).
+template<class T> inline std::string to_string_of(T v) { using std::to_string; return to_string(v); }
+template<class T> constexpr T constant_of(double v)
+{
+	if constexpr (std::is_floating_point_v<T>) return T(v);
+	else return T(float(v));
+}
+
+}
+
+// (by cases: the absolute value of a zero is +0, on every compiler, where MSVC folds 0 - (-0.0f) to -0; and a NaN stays one)
 template<class T> inline T
 abs(T s) {
-	return s > 0 ? s : -s;
+	if constexpr (std::is_unsigned_v<T>) {
+		return s;
+	} else {
+		if (s > T(0)) return s;
+		if (s < T(0)) return -s;
+		return s == T(0) ? T(0) : s;
+	}
 }
 
 // (Each through a using-declaration: for float, double and the integers the call is std::'s, as it always was; for a T of one's own,
 // like dfloat, argument lookup finds its own, so rove::sin(x) of one is its sin too.)
+template<class T> inline bool
+isnan(T s) {
+	using std::isnan;
+	return isnan(s);
+}
+
+template<class T> inline bool
+isfinite(T s) {
+	using std::isfinite;
+	return isfinite(s);
+}
+
+template<class T> inline auto
+floor(T s) {
+	using std::floor;
+	return floor(s);
+}
+
 template<class T> inline auto
 sin(T s) {
 	using std::sin;

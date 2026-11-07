@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <sstream>
@@ -62,15 +63,16 @@ void bind_line2(nb::module_ &m, char const *name) {
 		.def("closest_point", &Line::closest_point,
 			 nb::arg("point"),
 			 "Get the point on the segment nearest to point")
-		.def("__repr__", [](Line const &l) {
-			std::ostringstream ss;
-			ss << "segment2(A=" << l.A << ", B=" << l.B << ")";
+		.def("__repr__", [name](Line const &l) {
+			bind_text::repr_stream ss;
+			ss << name << "(A=" << l.A << ", B=" << l.B << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Line const &l) {
 			return nb::make_tuple(l.A, l.B);
 		})
 		.def("__setstate__", [](Line &l, nb::tuple t) {
+			check_state(t, 2, "Line.__setstate__");
 			l.A = nb::cast<Vec2>(t[0]);
 			l.B = nb::cast<Vec2>(t[1]);
 		});
@@ -119,15 +121,16 @@ void bind_line3(nb::module_ &m, char const *name) {
 		.def("closest_point", &Line::closest_point,
 			 nb::arg("point"),
 			 "Get the point on the segment nearest to point")
-		.def("__repr__", [](Line const &l) {
-			std::ostringstream ss;
-			ss << "segment3(A=" << l.A << ", B=" << l.B << ")";
+		.def("__repr__", [name](Line const &l) {
+			bind_text::repr_stream ss;
+			ss << name << "(A=" << l.A << ", B=" << l.B << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Line const &l) {
 			return nb::make_tuple(l.A, l.B);
 		})
 		.def("__setstate__", [](Line &l, nb::tuple t) {
+			check_state(t, 2, "Line.__setstate__");
 			l.A = nb::cast<Vec3>(t[0]);
 			l.B = nb::cast<Vec3>(t[1]);
 		});

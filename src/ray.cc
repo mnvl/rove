@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#ifdef ROVE_DFLOAT
+#include "dfloat.h"
+#endif
 #include "matrix.h"
 #include "ray.h"
 
@@ -28,7 +31,8 @@ template<int N, class T> T parallel_distance(ray<N, T> const &r1, ray<N, T> cons
 
 template<class T> T distance_between(ray<2,T> const &r1, ray<2,T> const &r2)
 {
-	if (!r1.a.is_collinear(r2.a, scalar_traits<T>::zero_length)) return 0;          // lines in a plane that are not parallel cross
+	// lines in a plane that are not parallel cross: whether they are is a question of the angle between them
+	if (!r1.a.is_collinear(r2.a, scalar_traits<T>::zero_length * r1.a.length() * r2.a.length())) return 0;
 	return parallel_distance(r1, r2);
 }
 
@@ -38,7 +42,8 @@ template<class T> bool closest_aproach(ray<3, T> const &r1, T &t1, ray<3, T> con
 	vec<3, T> a1_x_a2 = cross(r1.a, r2.a);
 
 	T k = a1_x_a2.length_sq();
-	if (k < scalar_traits<T>::zero_length_sq) return false;
+	// (k is |a1|^2 |a2|^2 sin^2: parallel is a question of the angle, not of how long the directions are)
+	if (k <= scalar_traits<T>::zero_length_sq * r1.a.length_sq() * r2.a.length_sq()) return false;
 
 	t1 = dot(cross(p2_p1, r2.a), a1_x_a2) / k;
 	t2 = dot(cross(p2_p1, r1.a), a1_x_a2) / k;
@@ -85,5 +90,9 @@ template class ray<2>;
 template class ray<3>;
 template class ray<2, double>;
 template class ray<3, double>;
+#ifdef ROVE_DFLOAT
+template class ray<2, dfloat>;
+template class ray<3, dfloat>;
+#endif
 
 }

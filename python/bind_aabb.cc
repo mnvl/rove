@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -71,7 +72,7 @@ void bind_aabb2(nb::module_ &m, char const *name) {
 			 nb::arg("other"),
 			 "Test intersection with another AABB")
 		.def("__repr__", [name](AABB const &a) {
-			std::ostringstream ss;
+			bind_text::repr_stream ss;
 			ss << name << "(lo=" << a.lo << ", hi=" << a.hi << ")";
 			return ss.str();
 		})
@@ -79,6 +80,7 @@ void bind_aabb2(nb::module_ &m, char const *name) {
 			return nb::make_tuple(a.lo, a.hi);
 		})
 		.def("__setstate__", [](AABB &a, nb::tuple t) {
+			check_state(t, 2, "AABB.__setstate__");
 			a.lo = nb::cast<Vec2>(t[0]);
 			a.hi = nb::cast<Vec2>(t[1]);
 		});
@@ -142,7 +144,7 @@ void bind_aabb3(nb::module_ &m, char const *name) {
 		   "ray-parameter times, or None if the ray misses the AABB in "
 		   "[t_min, t_max].")
 		.def("__repr__", [name](AABB const &a) {
-			std::ostringstream ss;
+			bind_text::repr_stream ss;
 			ss << name << "(lo=" << a.lo << ", hi=" << a.hi << ")";
 			return ss.str();
 		})
@@ -150,6 +152,7 @@ void bind_aabb3(nb::module_ &m, char const *name) {
 			return nb::make_tuple(a.lo, a.hi);
 		})
 		.def("__setstate__", [](AABB &a, nb::tuple t) {
+			check_state(t, 2, "AABB.__setstate__");
 			a.lo = nb::cast<Vec3>(t[0]);
 			a.hi = nb::cast<Vec3>(t[1]);
 		});

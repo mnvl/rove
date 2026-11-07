@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#ifdef ROVE_DFLOAT
+#include "dfloat.h"
+#endif
 #include "aabb.h"
 #include "obb.h"
 #include "frustum.h"
@@ -119,5 +122,8 @@ bool frustum<T>::test_intersection(sphere<dimensions, T> const &bounds) const
 
 template class frustum<>;
 template class frustum<double>;
+#ifdef ROVE_DFLOAT
+template class frustum<dfloat>;
+#endif
 
 }

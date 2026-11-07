@@ -5,6 +5,7 @@
 // results (the double maths library's, rounded to float, taken once and written here), which a build for ARM or WebAssembly must give
 // too.  Against the platform's double maths over many arguments, each function is within one ulp and almost always exact.
 
+#include <numbers>
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -27,6 +28,16 @@
 #include <rove/scalar.h>
 #include <rove/sphere.h>
 #include <rove/vec.h>
+#include <rove/aabb.h>
+#include <rove/obb.h>
+#include <rove/frustum.h>
+#include <rove/plane.h>
+#include <rove/triangle.h>
+#include <rove/cone.h>
+#include <rove/ray.h>
+#include <rove/octree.h>
+#include <rove/hash_grid.h>
+#include <rove/traits.h>
 
 namespace
 {
@@ -299,7 +310,7 @@ BOOST_AUTO_TEST_CASE(special_values_are_the_standards)
 		BOOST_CHECK(std::isnan(sin(x)) && std::isnan(cos(x)) && std::isnan(tan(x)));
 	}
 	BOOST_CHECK(std::isnan(sin(NaN)) && std::isnan(atan(NaN)) && std::isnan(exp(NaN)) && std::isnan(log(NaN)));
-	BOOST_CHECK(atan(INF) == float(M_PI / 2) && atan(-INF) == -float(M_PI / 2));
+	BOOST_CHECK(atan(INF) == float(std::numbers::pi / 2) && atan(-INF) == -float(std::numbers::pi / 2));
 	BOOST_CHECK(std::isnan(asin(1.0000001f)) && std::isnan(acos(-1.0000001f)) && std::isnan(asin(INF)));
 	BOOST_CHECK(exp(INF) == INF && exp(-INF) == 0 && exp(100.0f) == INF && exp(-110.0f) == 0);
 	BOOST_CHECK(log(INF) == INF && log(0.0f) == -INF && log(-0.0f) == -INF && std::isnan(log(-1.0f)) && log(1.0f) == 0);
@@ -472,6 +483,91 @@ BOOST_AUTO_TEST_CASE(random_numbers_and_noise_on_dfloat)
 	// value noise: at a lattice point the lattice's value, which is float's
 	BOOST_REQUIRE_EQUAL(rove::value_noise(dfloat(3.0f), 9).value(), rove::value_noise(3.0f, 9));
 	BOOST_REQUIRE(std::abs(float(rove::value_noise(dfloat(3.3f), dfloat(-1.25f), 9)) - rove::value_noise(3.3f, -1.25f, 9)) < 1e-6f);
+}
+
+// What the README says: every template takes dfloat.  Each answered through dfloat's own arithmetic, compared with the float's.
+BOOST_AUTO_TEST_CASE(the_shapes_on_dfloat_answer_as_the_shapes_on_float_do)
+{
+	using D = rove::dfloat;
+	using V = rove::vec<3, D>;
+	V const zero(D(0.0f), D(0.0f), D(0.0f)), one(D(1.0f), D(1.0f), D(1.0f)), x(D(1.0f), D(0.0f), D(0.0f));
+
+	rove::aabb<3, D> const box(zero, one);
+	D t0, t1;
+	BOOST_REQUIRE(box.trace(rove::ray<3, D>(V(D(-1.0f), D(0.5f), D(0.5f)), x), &t0, &t1, D(0.0f), D(10.0f)));
+	BOOST_TEST(t0.value() == 1.0f);
+	BOOST_TEST(t1.value() == 2.0f);
+	rove::aabb<2, D> const rect(rove::vec<2, D>(D(0.0f), D(0.0f)), rove::vec<2, D>(D(1.0f), D(1.0f)));
+	BOOST_TEST(rect.trace(rove::ray<2, D>(rove::vec<2, D>(D(-1.0f), D(0.5f)), rove::vec<2, D>(D(1.0f), D(0.0f))), D(0.0f), D(10.0f)));
+
+	rove::obb<3, D> const o(box);
+	BOOST_TEST(o.test_intersection(o));
+	BOOST_TEST(float(o.radius()) == std::sqrt(0.75f), boost::test_tools::tolerance(1e-5f));
+	rove::obb<3, D> const far_box(V(D(5.0f), D(5.0f), D(5.0f)), x, V(D(0.0f), D(1.0f), D(0.0f)), V(D(0.0f), D(0.0f), D(1.0f)));
+	BOOST_TEST(!o.test_intersection(far_box));
+	BOOST_TEST(!o.test_collision(far_box, V(D(0.0f), D(0.0f), D(0.0f))));
+
+	rove::plane<D> const p(zero, x);
+	BOOST_TEST(p.contains(V(D(0.0f), D(2.0f), D(3.0f))));
+	BOOST_TEST((p.classify(V(D(1.0f), D(0.0f), D(0.0f))) != p.classify(V(D(-1.0f), D(0.0f), D(0.0f)))));
+
+	rove::matrix<4, 4, D> view_projection;
+	view_projection.identity();
+	rove::frustum<D> const f(view_projection);
+	BOOST_TEST(f.contains(V(D(0.0f), D(0.0f), D(0.5f))));
+	BOOST_TEST(!f.contains(V(D(5.0f), D(0.0f), D(0.5f))));
+
+	rove::triangle<3, D> const tri(zero, x, V(D(0.0f), D(1.0f), D(0.0f)));
+	BOOST_TEST(float(tri.area()) == 0.5f);
+	BOOST_TEST(tri.contains(V(D(0.25f), D(0.25f), D(0.0f))));
+	BOOST_TEST(float(tri.closest_point(V(D(0.25f), D(0.25f), D(5.0f))).z) == 0.0f);
+
+	rove::cone<3, D> const c(zero, x, D(0.5f), D(1.0f));
+	BOOST_TEST(c.bounds().contains(x));
+
+	rove::capsule<3, D> const cap(zero, one, D(1.0f));
+	BOOST_TEST(float(cap.bounds().lo.x) == -1.0f);
+	BOOST_TEST(cap.test_intersection(cap));
+	BOOST_TEST(float(cap.distance(V(D(5.0f), D(0.0f), D(0.0f)))) > 0.0f);
+
+	rove::sphere<3, D> const s(zero, D(1.0f));
+	BOOST_TEST(s.test_intersection(rove::ray<3, D>(V(D(3.0f), D(0.0f), D(0.0f)), V(D(-1.0f), D(0.0f), D(0.0f)))));
+
+	rove::octree<rove::aabb<3, D>, int> tree(box);
+	tree.insert(box, 7);
+	tree.build();
+	BOOST_TEST(tree.query_intersection(box).size() == 1u);
+
+	rove::hash_grid<rove::aabb<3, D>, int> grid(D(1.0f));
+	grid.insert(box, 9);
+	BOOST_TEST(grid.query_intersection(box).size() == 1u);
+}
+
+BOOST_AUTO_TEST_CASE(isfinite_isnan_and_floor_of_a_dfloat_are_its_own)
+{
+	using D = rove::dfloat;
+	D const inf(std::numeric_limits<float>::infinity()), nan(std::numeric_limits<float>::quiet_NaN());
+	BOOST_TEST(rove::isfinite(D(1.5f)));
+	BOOST_TEST(!rove::isfinite(inf));
+	BOOST_TEST(!rove::isfinite(nan));
+	BOOST_TEST(rove::isnan(nan));
+	BOOST_TEST(!rove::isnan(inf));
+	BOOST_TEST(float(rove::floor(D(-0.5f))) == -1.0f);
+}
+
+// What the check of an inverse does on a dfloat: a determinant whose reciprocal is infinite has no inverse, as on a float
+BOOST_AUTO_TEST_CASE(a_dfloat_matrix_with_no_usable_inverse_says_so)
+{
+	using D = rove::dfloat;
+	rove::matrix<4, 4, D> m;
+	m.identity();
+	m.ij[0][0] = m.ij[1][1] = m.ij[2][2] = D(1e-13f);
+	rove::matrix<4, 4, D> out;
+	BOOST_TEST(!m.inverse(out));
+	BOOST_CHECK_THROW((void)rove::inverse(m), std::invalid_argument);
+	m.ij[0][0] = m.ij[1][1] = m.ij[2][2] = D(0.5f);
+	BOOST_REQUIRE(m.inverse(out));
+	BOOST_TEST(float(out.ij[0][0]) == 2.0f);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

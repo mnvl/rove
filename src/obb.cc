@@ -5,9 +5,87 @@
 
 #include "capsule.h"
 #include "triangle.h"
+#ifdef ROVE_DFLOAT
+#include "dfloat.h"
+#endif
 
 namespace rove
 {
+
+namespace
+{
+
+/// A thing moving past a still one, as seen along one axis in the still box's space, where that box is the unit cube.  Every point of
+/// the thing's shape projects into [lo, hi] at time 0, and it moves by `speed` per unit of time.  Keeps in [enter, leave] the times
+/// when the two overlap along this axis; false when none are left.
+template<class T>
+bool overlap_times_on_axis(vec<3, T> const &axis, T lo, T hi, T speed, T &enter, T &leave)
+{
+	T box_lo = 0, box_hi = 0;
+	for (size_t i = 0; i < 3; ++i) {
+		if (axis.i[i] < T(0)) box_lo += axis.i[i];
+		else box_hi += axis.i[i];
+	}
+	if (speed == T(0)) return !(hi < box_lo || lo > box_hi);
+	T const t_a = (box_lo - hi) / speed, t_b = (box_hi - lo) / speed;
+	T const t_enter = (speed > T(0) ? t_a : t_b), t_leave = (speed > T(0) ? t_b : t_a);
+	if (t_enter > enter) enter = t_enter;
+	if (t_leave < leave) leave = t_leave;
+	return enter <= leave;
+}
+
+/// Whether an axis is a cross product of edges that were (nearly) parallel: it has lost its direction to rounding and separates nothing
+template<class T>
+bool lost_its_direction(vec<3, T> const &axis, vec<3, T> const &edge)
+{
+	return axis.length_sq() <= scalar_traits<T>::zero_length_sq * edge.length_sq();
+}
+
+/// The times of [t_min, t_max] when a convex shape meets the unit cube, by every axis that can separate the two.  The vertices are its
+/// position at time 0 in the cube's space; `normals` are the shape's face normals, `edges` its edge directions.
+template<class T, size_t V, size_t N, size_t E>
+bool never_meets_the_unit_cube(vec<3, T> const (&vertices)[V], vec<3, T> const (&normals)[N], vec<3, T> const (&edges)[E],
+	vec<3, T> const &vel, T t_min, T t_max)
+{
+	T enter = t_min, leave = t_max;
+	if (!(enter <= leave)) return true;
+	auto const on_axis = [&](vec<3, T> const &axis) {
+		T lo = dot(vertices[0], axis), hi = lo;
+		for (size_t i = 1; i < V; ++i) {
+			T const p = dot(vertices[i], axis);
+			if (p < lo) lo = p;
+			if (p > hi) hi = p;
+		}
+		return overlap_times_on_axis(axis, lo, hi, dot(vel, axis), enter, leave);
+	};
+
+	vec<3, T> const cube[3] = { vec<3, T>(1, 0, 0), vec<3, T>(0, 1, 0), vec<3, T>(0, 0, 1) };
+	for (vec<3, T> const &axis : cube) if (!on_axis(axis)) return true;
+	for (vec<3, T> const &axis : normals) if (!on_axis(axis)) return true;
+	for (vec<3, T> const &edge : edges) {
+		for (vec<3, T> const &c : cube) {
+			vec<3, T> const axis = cross(c, edge);
+			if (!lost_its_direction(axis, edge) && !on_axis(axis)) return true;
+		}
+	}
+	return false;
+}
+
+/// An OBB's corners and edge axes in another box's space (origin and three edges already there)
+template<class T>
+void corners_of(vec<3, T> const &o, vec<3, T> const &t, vec<3, T> const &n, vec<3, T> const &b, vec<3, T> (&out)[8])
+{
+	out[0] = o;
+	out[1] = o + t;
+	out[2] = o + t + n;
+	out[3] = o + n;
+	out[4] = o + b;
+	out[5] = o + t + b;
+	out[6] = o + t + n + b;
+	out[7] = o + n + b;
+}
+
+}
 
 template <class T> T
 obb<3,T>::radius() const {
@@ -195,80 +273,21 @@ obb<3,T>::test_nonintersection(triangle<dimensions, T> const &r) const
 }
 
 template<class T> bool obb<3,T>::test_nonintersection(obb const &r) const {
-	// get r coordinates in local coordinate system
-	vec_type r_origin, r_tangent, r_normal, r_binormal;
-	world_to_local_point(r_origin,r.origin);
-	world_to_local_vector(r_tangent,r.tangent);
-	world_to_local_vector(r_normal,r.normal);
-	world_to_local_vector(r_binormal,r.binormal);
-
-	// get obb vertex coordinates
-	vec_type v0 = r_origin;
-	vec_type v1 = v0 + r_tangent;
-	vec_type v2 = v1 + r_normal;
-	vec_type v3 = v0 + r_normal;
-	vec_type v4 = v0 + r_binormal;
-	vec_type v5 = v1 + r_binormal;
-	vec_type v6 = v2 + r_binormal;
-	vec_type v7 = v3 + r_binormal;
-
-	// two obbs do not intersect if there exists a plane that divides space into
-	// two half-spaces, one containing the first obb and the other containing the second
-	// (sufficient condition)
-	return (v0.x<0 && v1.x<0 && v2.x<0 && v3.x<0 && v4.x<0 && v5.x<0 && v6.x<0 && v7.x<0)
-		|| (v0.y<0 && v1.y<0 && v2.y<0 && v3.y<0 && v4.y<0 && v5.y<0 && v6.y<0 && v7.y<0)
-		|| (v0.z<0 && v1.z<0 && v2.z<0 && v3.z<0 && v4.z<0 && v5.z<0 && v6.z<0 && v7.z<0)
-		|| (v0.x>1 && v1.x>1 && v2.x>1 && v3.x>1 && v4.x>1 && v5.x>1 && v6.x>1 && v7.x>1)
-		|| (v0.y>1 && v1.y>1 && v2.y>1 && v3.y>1 && v4.y>1 && v5.y>1 && v6.y>1 && v7.y>1)
-		|| (v0.z>1 && v1.z>1 && v2.z>1 && v3.z>1 && v4.z>1 && v5.z>1 && v6.z>1 && v7.z>1);
+	return test_noncollision(r, vec_type(0, 0, 0), T(0), T(0));
 }
 
 template<class T> bool
 obb<3,T>::test_noncollision(triangle<dimensions, T> const &tri, vec_type const &vel, T t_min, T t_max) const
 {
-	vec_type tri_A, tri_B, tri_C, tri_vel;
-	world_to_local_point(tri_A, tri.A);
-	world_to_local_point(tri_B, tri.B);
-	world_to_local_point(tri_C, tri.C);
+	vec_type vertices[3], tri_vel;
+	world_to_local_point(vertices[0], tri.A);
+	world_to_local_point(vertices[1], tri.B);
+	world_to_local_point(vertices[2], tri.C);
 	world_to_local_vector(tri_vel, vel);
 
-		T t_len = t_max - t_min;
-	vec_type tri_delta = tri_vel * t_len;
-
-	if (t_min != 0) {
-		vec_type tri_start = tri_vel * t_min;
-		tri_A -= tri_start;
-		tri_B -= tri_start;
-		tri_C -= tri_start;
-	}
-
-	vec_type tri_A1 = tri_A + tri_delta;
-	vec_type tri_B1 = tri_B + tri_delta;
-	vec_type tri_C1 = tri_C + tri_delta;
-
-	if ((tri_A.x<0 && tri_B.x<0 && tri_C.x<0 && tri_A1.x<0 && tri_B1.x<0 && tri_C1.x<0)
-	|| (tri_A.x>1 && tri_B.x>1 && tri_C.x>1 && tri_A1.x>1 && tri_B1.x>1 && tri_C1.x>1)
-	|| (tri_A.y<0 && tri_B.y<0 && tri_C.y<0 && tri_A1.y<0 && tri_B1.y<0 && tri_C1.y<0)
-	|| (tri_A.y>1 && tri_B.y>1 && tri_C.y>1 && tri_A1.y>1 && tri_B1.y>1 && tri_C1.y>1)
-	|| (tri_A.z<0 && tri_B.z<0 && tri_C.z<0 && tri_A1.z<0 && tri_B1.z<0 && tri_C1.z<0)
-	|| (tri_A.z>1 && tri_B.z>1 && tri_C.z>1 && tri_A1.z>1 && tri_B1.z>1 && tri_C1.z>1))
-	{
-		return true;
-	}
-
-	vec_type tri_normal = cross(tri_B - tri_A, tri_C - tri_B);
-
-	T k1 = dot(vec_type(0,0,0) - tri_A, tri_normal);
-	T k2 = dot(vec_type(0,0,1) - tri_A, tri_normal);
-	T k3 = dot(vec_type(0,1,0) - tri_A, tri_normal);
-	T k4 = dot(vec_type(0,1,1) - tri_A, tri_normal);
-	T k5 = dot(vec_type(1,0,0) - tri_A, tri_normal);
-	T k6 = dot(vec_type(1,0,1) - tri_A, tri_normal);
-	T k7 = dot(vec_type(1,1,0) - tri_A, tri_normal);
-	T k8 = dot(vec_type(1,1,1) - tri_A, tri_normal);
-
-	return (k1<0 && k2<0 && k3<0 && k4<0 && k5<0 && k6<0 && k7<0 && k8<0)
-	    || (k1>0 && k2>0 && k3>0 && k4>0 && k5>0 && k6>0 && k7>0 && k8>0);
+	vec_type const edges[3] = { vertices[1] - vertices[0], vertices[2] - vertices[1], vertices[0] - vertices[2] };
+	vec_type const normals[1] = { cross(edges[0], edges[1]) };
+	return never_meets_the_unit_cube(vertices, normals, edges, tri_vel, t_min, t_max);
 }
 
 template<class T> bool
@@ -283,43 +302,12 @@ obb<3,T>::test_noncollision(obb const &box, vec_type const &vel, T t_min,
 	world_to_local_vector(box_binormal,box.binormal);
 	world_to_local_vector(box_vel, vel);
 
-	// compute interval length
-	T t_len = t_max - t_min;
-	vec_type delta = box_vel * t_len;
+	vec_type vertices[8];
+	corners_of(box_origin, box_tangent, box_normal, box_binormal, vertices);
 
-	// get obb vertex coordinates
-	vec_type v0_0 = box_origin - box_vel * t_min;
-	vec_type v1_0 = v0_0 + box_tangent;
-	vec_type v2_0 = v1_0 + box_normal;
-	vec_type v3_0 = v0_0 + box_normal;
-	vec_type v4_0 = v0_0 + box_binormal;
-	vec_type v5_0 = v1_0 + box_binormal;
-	vec_type v6_0 = v2_0 + box_binormal;
-	vec_type v7_0 = v3_0 + box_binormal;
-	vec_type v0_1 = v0_0 + delta;
-	vec_type v1_1 = v1_0 + delta;
-	vec_type v2_1 = v2_0 + delta;
-	vec_type v3_1 = v3_0 + delta;
-	vec_type v4_1 = v4_0 + delta;
-	vec_type v5_1 = v5_0 + delta;
-	vec_type v6_1 = v6_0 + delta;
-	vec_type v7_1 = v7_0 + delta;
-
-	// two obbs do not intersect if there exists a plane that divides space into
-	// two half-spaces, one containing the first obb and the other containing the second
-	// (sufficient condition)
-	return (v0_0.x<0 && v1_0.x<0 && v2_0.x<0 && v3_0.x<0 && v4_0.x<0 && v5_0.x<0 && v6_0.x<0 && v7_0.x<0
-	    &&  v0_1.x<0 && v1_1.x<0 && v2_1.x<0 && v3_1.x<0 && v4_1.x<0 && v5_1.x<0 && v6_1.x<0 && v7_1.x<0)
-	    || (v0_0.y<0 && v1_0.y<0 && v2_0.y<0 && v3_0.y<0 && v4_0.y<0 && v5_0.y<0 && v6_0.y<0 && v7_0.y<0
-	    &&  v0_1.y<0 && v1_1.y<0 && v2_1.y<0 && v3_1.y<0 && v4_1.y<0 && v5_1.y<0 && v6_1.y<0 && v7_1.y<0)
-	    || (v0_0.z<0 && v1_0.z<0 && v2_0.z<0 && v3_0.z<0 && v4_0.z<0 && v5_0.z<0 && v6_0.z<0 && v7_0.z<0
-	    &&  v0_1.z<0 && v1_1.z<0 && v2_1.z<0 && v3_1.z<0 && v4_1.z<0 && v5_1.z<0 && v6_1.z<0 && v7_1.z<0)
-	    || (v0_0.x>1 && v1_0.x>1 && v2_0.x>1 && v3_0.x>1 && v4_0.x>1 && v5_0.x>1 && v6_0.x>1 && v7_0.x>1
-	    &&  v0_1.x>1 && v1_1.x>1 && v2_1.x>1 && v3_1.x>1 && v4_1.x>1 && v5_1.x>1 && v6_1.x>1 && v7_1.x>1)
-	    || (v0_0.y>1 && v1_0.y>1 && v2_0.y>1 && v3_0.y>1 && v4_0.y>1 && v5_0.y>1 && v6_0.y>1 && v7_0.y>1
-	    &&  v0_1.y>1 && v1_1.y>1 && v2_1.y>1 && v3_1.y>1 && v4_1.y>1 && v5_1.y>1 && v6_1.y>1 && v7_1.y>1)
-	    || (v0_0.z>1 && v1_0.z>1 && v2_0.z>1 && v3_0.z>1 && v4_0.z>1 && v5_0.z>1 && v6_0.z>1 && v7_0.z>1
-	    &&  v0_1.z>1 && v1_1.z>1 && v2_1.z>1 && v3_1.z>1 && v4_1.z>1 && v5_1.z>1 && v6_1.z>1 && v7_1.z>1);
+	vec_type const edges[3] = { box_tangent, box_normal, box_binormal };
+	vec_type const normals[3] = { cross(box_normal, box_binormal), cross(box_binormal, box_tangent), cross(box_tangent, box_normal) };
+	return never_meets_the_unit_cube(vertices, normals, edges, box_vel, t_min, t_max);
 }
 
 template<class T> bool
@@ -386,5 +374,9 @@ obb<3,T>::test_intersection(capsule<dimensions, T> const &cap) const
 
 template class obb<3>;
 template class obb<3, double>;
+
+#ifdef ROVE_DFLOAT
+template class obb<3, dfloat>;
+#endif
 
 }

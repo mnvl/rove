@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -64,7 +65,7 @@ void bind_obb2(nb::module_ &m, char const *name) {
 			return result;
 		}, "Get axis-aligned bounding box containing this OBB")
 		.def("__repr__", [name](OBB const &o) {
-			std::ostringstream ss;
+			bind_text::repr_stream ss;
 			ss << name << "(origin=" << o.origin
 			   << ", tangent=" << o.tangent
 			   << ", normal=" << o.normal << ")";
@@ -74,6 +75,7 @@ void bind_obb2(nb::module_ &m, char const *name) {
 			return nb::make_tuple(o.origin, o.tangent, o.normal);
 		})
 		.def("__setstate__", [](OBB &o, nb::tuple t) {
+			check_state(t, 3, "OBB.__setstate__");
 			o.origin  = nb::cast<Vec2>(t[0]);
 			o.tangent = nb::cast<Vec2>(t[1]);
 			o.normal  = nb::cast<Vec2>(t[2]);
@@ -116,6 +118,7 @@ void bind_obb3(nb::module_ &m, char const *name) {
 			return result;
 		}, "Get axis-aligned bounding box containing this OBB")
 		.def("vertex", [](OBB const &obb, size_t vertex_number) {
+			if (vertex_number >= OBB::vertices_count) throw nb::index_error("An obb3's vertices are 0 to 7");
 			Vec3 position;
 			position = obb.vertex(vertex_number);
 			return position;
@@ -155,7 +158,7 @@ void bind_obb3(nb::module_ &m, char const *name) {
 		}, nb::arg("box"), nb::arg("displacement"),
 		   "Decompose swept volume into 6 face-sweep OBBs for tunneling prevention")
 		.def("__repr__", [name](OBB const &o) {
-			std::ostringstream ss;
+			bind_text::repr_stream ss;
 			ss << name << "(origin=" << o.origin
 			   << ", tangent=" << o.tangent
 			   << ", normal=" << o.normal
@@ -166,6 +169,7 @@ void bind_obb3(nb::module_ &m, char const *name) {
 			return nb::make_tuple(o.origin, o.tangent, o.normal, o.binormal);
 		})
 		.def("__setstate__", [](OBB &o, nb::tuple t) {
+			check_state(t, 4, "OBB.__setstate__");
 			o.origin   = nb::cast<Vec3>(t[0]);
 			o.tangent  = nb::cast<Vec3>(t[1]);
 			o.normal   = nb::cast<Vec3>(t[2]);

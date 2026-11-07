@@ -151,9 +151,6 @@ public:
 	/// axes)
 	void rotation(T alpha,T beta,T gamma);
 
-	/// @brief Set to rotation matrix from rotation vector
-	void rotation(vec_type const &v);
-
 	/// @brief Set to rotation matrix from quaternion
 	void rotation(quaternion_type const &q);
 
@@ -211,10 +208,9 @@ public:
 
 	/// @brief *this, or std::invalid_argument: `what` and " that is not finite" where an entry is NaN or infinite
 	matrix const &check_finite(char const *what) const {
-		using std::isfinite;
 		for (size_t c = 0; c < columns; ++c)
 			for (size_t r = 0; r < rows; ++r)
-				if (!isfinite(ij[c][r]))
+				if (!rove::isfinite(ij[c][r]))
 					throw std::invalid_argument(std::string(what) + " that is not finite");
 		return *this;
 	}
@@ -223,8 +219,8 @@ public:
 	/// is zero or not a number
 	matrix const &check_invertible(char const *what) const {
 		T const det = determinant();
-		using std::isfinite, std::to_string;
-		if (!(det != 0) || !isfinite(det))
+		using std::to_string;
+		if (!(det != 0) || !rove::isfinite(det) || !rove::isfinite(T(1) / det))
 			throw std::invalid_argument(std::string(what) + " of determinant " + to_string(det));
 		return *this;
 	}
@@ -253,9 +249,11 @@ public:
 	 */
 	[[nodiscard]] bool inverse(matrix &M) const {
 		T det = determinant();
-		if (det == 0) return false;
-		adjoint(M);
-		M /= det;
+		if (det == 0 || !rove::isfinite(T(1) / det)) return false;
+		matrix r;          // (M may be *this)
+		adjoint(r);
+		r /= det;
+		M = r;
 		return true;
 	}
 
@@ -267,11 +265,12 @@ public:
 		return matrix(*this).inverse(*this);
 	}
 
-	/// @brief Compute transpose matrix
+	/// @brief Compute transpose matrix (tp may be *this)
 	void transpose(matrix &tp) const {
-		tp.ij[0][0] = ij[0][0];		tp.ij[0][1] = ij[1][0];		tp.ij[0][2] = ij[2][0];
-		tp.ij[1][0] = ij[0][1];		tp.ij[1][1] = ij[1][1];		tp.ij[1][2] = ij[2][1];
-		tp.ij[2][0] = ij[0][2];		tp.ij[2][1] = ij[1][2];		tp.ij[2][2] = ij[2][2];
+		matrix const m(*this);
+		tp.ij[0][0] = m.ij[0][0];		tp.ij[0][1] = m.ij[1][0];		tp.ij[0][2] = m.ij[2][0];
+		tp.ij[1][0] = m.ij[0][1];		tp.ij[1][1] = m.ij[1][1];		tp.ij[1][2] = m.ij[2][1];
+		tp.ij[2][0] = m.ij[0][2];		tp.ij[2][1] = m.ij[1][2];		tp.ij[2][2] = m.ij[2][2];
 	}
 
 	matrix &operator *=(T k) {
@@ -401,9 +400,6 @@ public:
 	/// axes)
 	void rotation(T alpha,T beta,T gamma);
 
-	/// @brief Set to rotation matrix from rotation vector
-	void rotation(point_type const &v);
-
 	/// @brief Set to rotation matrix from quaternion
 	void rotation(quaternion_type const &q);
 
@@ -502,10 +498,9 @@ public:
 
 	/// @brief *this, or std::invalid_argument: `what` and " that is not finite" where an entry is NaN or infinite
 	matrix const &check_finite(char const *what) const {
-		using std::isfinite;
 		for (size_t c = 0; c < columns; ++c)
 			for (size_t r = 0; r < rows; ++r)
-				if (!isfinite(ij[c][r]))
+				if (!rove::isfinite(ij[c][r]))
 					throw std::invalid_argument(std::string(what) + " that is not finite");
 		return *this;
 	}
@@ -514,8 +509,8 @@ public:
 	/// is zero or not a number
 	matrix const &check_invertible(char const *what) const {
 		T const det = determinant();
-		using std::isfinite, std::to_string;
-		if (!(det != 0) || !isfinite(det))
+		using std::to_string;
+		if (!(det != 0) || !rove::isfinite(det) || !rove::isfinite(T(1) / det))
 			throw std::invalid_argument(std::string(what) + " of determinant " + to_string(det));
 		return *this;
 	}
@@ -548,9 +543,11 @@ public:
 	 */
 	[[nodiscard]] bool inverse(matrix &M) const {
 		T det = determinant();
-		if (det == 0) return false;
-		adjoint(M);
-		M /= det;
+		if (det == 0 || !rove::isfinite(T(1) / det)) return false;
+		matrix r;          // (M may be *this)
+		adjoint(r);
+		r /= det;
+		M = r;
 		return true;
 	}
 
@@ -564,10 +561,11 @@ public:
 
 	/// @brief Compute transpose matrix
 	void transpose(matrix &tp) const {
-		tp.ij[0][0] = ij[0][0];	tp.ij[0][1] = ij[1][0];	tp.ij[0][2] = ij[2][0]; tp.ij[0][3] = ij[3][0];
-		tp.ij[1][0] = ij[0][1];	tp.ij[1][1] = ij[1][1];	tp.ij[1][2] = ij[2][1]; tp.ij[1][3] = ij[3][1];
-		tp.ij[2][0] = ij[0][2];	tp.ij[2][1] = ij[1][2];	tp.ij[2][2] = ij[2][2]; tp.ij[2][3] = ij[3][2];
-		tp.ij[3][0] = ij[0][3];	tp.ij[3][1] = ij[1][3];	tp.ij[3][2] = ij[2][3]; tp.ij[3][3] = ij[3][3];
+		matrix const m(*this);          // (tp may be *this)
+		tp.ij[0][0] = m.ij[0][0];	tp.ij[0][1] = m.ij[1][0];	tp.ij[0][2] = m.ij[2][0]; tp.ij[0][3] = m.ij[3][0];
+		tp.ij[1][0] = m.ij[0][1];	tp.ij[1][1] = m.ij[1][1];	tp.ij[1][2] = m.ij[2][1]; tp.ij[1][3] = m.ij[3][1];
+		tp.ij[2][0] = m.ij[0][2];	tp.ij[2][1] = m.ij[1][2];	tp.ij[2][2] = m.ij[2][2]; tp.ij[2][3] = m.ij[3][2];
+		tp.ij[3][0] = m.ij[0][3];	tp.ij[3][1] = m.ij[1][3];	tp.ij[3][2] = m.ij[2][3]; tp.ij[3][3] = m.ij[3][3];
 	}
 
 	/// @brief Transpose matrix in place
@@ -780,8 +778,8 @@ template<class T> inline vec<3,T>
 project_point(matrix<4,4,T> const &m,vec<3,T> const &p) {
 	vec<4,T> h;
 	detail::mul(h, m, p);
-	using std::isfinite, std::to_string;
-	if (!(h.w != 0) || !isfinite(h.w))
+	using std::to_string;
+	if (!(h.w != 0) || !rove::isfinite(h.w))
 		throw std::invalid_argument("rove: project_point: w is " + to_string(h.w));
 	return vec<3,T>(h.x / h.w, h.y / h.w, h.z / h.w);
 }
@@ -798,8 +796,8 @@ template<class T> inline vec<2,T>
 project_point(matrix<3,3,T> const &m,vec<2,T> const &p) {
 	vec<3,T> h;
 	detail::mul(h, m, p);
-	using std::isfinite, std::to_string;
-	if (!(h.z != 0) || !isfinite(h.z))
+	using std::to_string;
+	if (!(h.z != 0) || !rove::isfinite(h.z))
 		throw std::invalid_argument("rove: project_point: z is " + to_string(h.z));
 	return vec<2,T>(h.x / h.z, h.y / h.z);
 }

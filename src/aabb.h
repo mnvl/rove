@@ -21,9 +21,6 @@
 #include "vec.h"
 #include "matrix.h"
 
-#undef min
-#undef max
-
 namespace rove
 {
 
@@ -52,7 +49,7 @@ public:
 	static constexpr size_t dimensions = N;              ///< Number of dimensions
 	using vec_type = vec<dimensions,T>;          ///< Associated vector type
 	static constexpr size_t vertices_count = 1 << dimensions;  ///< Number of corner vertices (2^N)
-	static constexpr size_t edges_count = vertices_count + (1 << (dimensions-1));  ///< Number of edges
+	static constexpr size_t edges_count = dimensions * (1 << (dimensions-1));  ///< Number of edges
 	using ray_type = ray<dimensions,T>;          ///< Associated ray type
 
 	vec_type lo;   ///< Minimum corner (lower bounds in all dimensions)
@@ -118,8 +115,8 @@ public:
 	 */
 	void null() {
 		for (size_t n=0; n<dimensions; n++) {
-			lo.i[n] = +limits_type::max();
-			hi.i[n] = -limits_type::max();
+			lo.i[n] = +(limits_type::max)();
+			hi.i[n] = -(limits_type::max)();
 		}
 	}
 
@@ -253,9 +250,10 @@ public:
 	/**
 	 * @brief Extend AABB to include another AABB
 	 *
-	 * Grows this AABB to be the union of both boxes.
+	 * Grows this AABB to be the union of both boxes.  An empty box holds nothing, so it adds nothing.
 	 */
 	void extend(aabb const &b) {
+		if (b.is_empty()) return;
 		extend(b.lo);
 		extend(b.hi);
 	}
@@ -290,13 +288,14 @@ public:
 	/**
 	 * @brief Ray trace against AABB with intersection times
 	 *
-	 * Finds where a ray enters and exits the AABB.
+	 * Finds the part of [t_min, t_max] the ray spends in the box, the faces included.  A ray that starts inside
+	 * entered at t_min, and one still inside at t_max leaves at t_max.  A ray with no direction is in the box or not.
 	 *
-	 * @param[out] t0 Time of entry (where ray enters AABB)
-	 * @param[out] t1 Time of exit (where ray leaves AABB)
+	 * @param[out] t0 Time of entry, t_min or later (t_max on a miss)
+	 * @param[out] t1 Time of exit, t_max or sooner (t_min on a miss)
 	 * @param t_min Minimum t value to consider (default 0)
 	 * @param t_max Maximum t value to consider (default 1)
-	 * @return true if ray intersects AABB in [t_min, t_max]
+	 * @return true if ray meets the AABB in [t_min, t_max]
 	 */
 	[[nodiscard]] bool trace(ray_type const &r, T *t0, T *t1, T t_min = 0, T t_max = 1) const;
 
@@ -336,8 +335,6 @@ auto bounds_of(It first, It last)
 template<class T>
 aabb<3, T> transform_aabb(aabb<3, T> const &box, matrix<4, 4, T> const &m)
 {
-	using std::abs;
-	T const loose = T(1) / T(100000);
 	m.check_affine("rove: transform_aabb by a matrix");
 	if (box.is_empty()) return box;
 	aabb<3, T> r;
@@ -345,8 +342,8 @@ aabb<3, T> transform_aabb(aabb<3, T> const &box, matrix<4, 4, T> const &m)
 		r.lo.i[i] = r.hi.i[i] = m.ij[3][i];
 		for (int j = 0; j < 3; ++j) {
 			T const a = m.ij[j][i] * box.lo.i[j], b = m.ij[j][i] * box.hi.i[j];
-			r.lo.i[i] += std::min(a, b);
-			r.hi.i[i] += std::max(a, b);
+			r.lo.i[i] += (std::min)(a, b);
+			r.hi.i[i] += (std::max)(a, b);
 		}
 	}
 	return r;

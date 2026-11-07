@@ -54,11 +54,11 @@ on single objects (see examples/benchmark.py).
 ## Python
 
 ```bash
-pip install pyrove                                   # from PyPI, once released
+pip install pyrove                                   # from PyPI
 pip install git+https://github.com/mnvl/rove.git     # from source: needs CMake and a C++20 compiler
 ```
 
-More ways to install, and what each needs: [docs/install.md](docs/install.md).
+More ways to install, and what each needs: [docs/install.md](https://github.com/mnvl/rove/blob/main/docs/install.md).
 
 ```python
 import pyrove
@@ -110,7 +110,7 @@ dq = pyrove.quatd(0.0, 0.0, 0.0, 1.0)
 # Geometric primitives
 
 # Rays for ray casting
-ray = pyrove.ray3(pyrove.vec3(0, 0, 0), pyrove.vec3(1, 0, 0))
+ray = pyrove.ray3(pyrove.vec3(0, 2, 0), pyrove.vec3(0, -1, 0))
 point_on_ray = ray.apply(5.0)  # Get point at t=5
 
 # Line segments
@@ -145,7 +145,8 @@ if capsule.contains(pyrove.vec3(0, 1, 0.3)):
     print("Point inside capsule")
 
 # Frustum culling
-frustum = pyrove.frustum(view_projection_matrix)
+view_projection = pyrove.perspective_matrix(1.0, 16 / 9, 0.1, 100.0)
+frustum = pyrove.frustum(view_projection)
 bbox = pyrove.aabb3(pyrove.vec3(-1, -1, -1), pyrove.vec3(1, 1, 1))
 if frustum.test_intersection(bbox):
     print("Object is visible")
@@ -193,7 +194,7 @@ pyrove.value_noise(x, y, seed=7), pyrove.fbm(x, y, 4, 2.0, 0.5, 7), pyrove.split
 ## C++
 
 rove can be a git submodule, fetched by CMake, a Conan or vcpkg package, or installed from source; each way gives the
-target `rove::rove`. [docs/install.md](docs/install.md) has the steps for each. As a submodule:
+target `rove::rove`. [docs/install.md](https://github.com/mnvl/rove/blob/main/docs/install.md) has the steps for each. As a submodule:
 
 ```bash
 git submodule add https://github.com/mnvl/rove external/rove
@@ -290,7 +291,10 @@ bindings, `tests/` the C++ (Boost.Test) and Python (pytest) tests.
   world +X lands on view -X.  A right-handed world (glTF's) seen through it and edge's renderer comes out as it was authored (edge's
   README, Coordinate System).  It is not `D3DXMatrixLookAtLH`, whose right is up x forward.
 - **Euler angles**: `rotation(alpha, beta, gamma)` is Rz(gamma) Ry(beta) Rx(alpha): a turn about x first, then y, then z.
-- **A point through a matrix**: `m * p` (and `transform_point`) is affine: w taken as 1 and never divided by; `project_point` divides
+- **A point through a matrix**: `m * p` of a `mat4` and a `vec3` (and `transform_point`) is affine: w taken as 1 and never divided by (a
+  `mat3` and a `vec2` is different: a homogeneous 2D point, divided by the third component; Python's `get(i, j)` is [column][row], as the
+  matrix is stored, and `to_numpy()[i, j]` is [row][column], as numpy reads it; and the setters `m.translate(...); m.scale(...)` each
+  multiply on the right of what they are told to do first, S x T, where `m *= T; m *= S` is T x S); `project_point` divides
   by the w that comes out.  `transform_vector` leaves out the translation.
 - **What has no answer throws** `std::invalid_argument` rather than returning a plausible value: `direction()` of a zero vector,
   `normalize()` of a zero vector (`normalize_or_zero()` hands it back) or quaternion, `inverse()` of a singular matrix,
@@ -323,7 +327,7 @@ bindings, `tests/` the C++ (Boost.Test) and Python (pytest) tests.
 
 ## Documentation
 
-The headers' comments (`///`, which an IDE shows) and this README. [CHANGELOG.md](CHANGELOG.md) lists what changed between
+The headers' comments (`///`, which an IDE shows) and this README. [CHANGELOG.md](https://github.com/mnvl/rove/blob/main/CHANGELOG.md) lists what changed between
 versions.
 
 ## API Reference
@@ -422,8 +426,8 @@ The tests need Boost.Test; the Python tests need pytest and NumPy.
 
 ## License
 
-MIT; see [LICENSE](LICENSE.md).
+MIT; see [LICENSE](https://github.com/mnvl/rove/blob/main/LICENSE.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/mnvl/rove/blob/main/CONTRIBUTING.md).

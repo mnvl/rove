@@ -464,4 +464,22 @@ BOOST_AUTO_TEST_CASE(delta_angle_is_the_short_turn_across_the_seam)
 	BOOST_REQUIRE_EQUAL(rove::delta_angle(1.0, 1.0), 0.0);
 }
 
+// For code templated on the scalar, as rove::sin: the standard's for float and double, dfloat's own by argument lookup
+BOOST_AUTO_TEST_CASE(isfinite_isnan_and_floor_of_either_precision)
+{
+	float const inf = std::numeric_limits<float>::infinity(), nan = std::numeric_limits<float>::quiet_NaN();
+	BOOST_TEST(rove::isfinite(1.5f));
+	BOOST_TEST(!rove::isfinite(inf));
+	BOOST_TEST(!rove::isfinite(-inf));
+	BOOST_TEST(!rove::isfinite(nan));
+	BOOST_TEST(rove::isfinite(1.5));
+	BOOST_TEST(!rove::isfinite(std::numeric_limits<double>::infinity()));
+	BOOST_TEST(rove::isnan(nan));
+	BOOST_TEST(!rove::isnan(inf));
+	BOOST_TEST(!rove::isnan(0.0f));
+	BOOST_TEST(rove::isnan(std::numeric_limits<double>::quiet_NaN()));
+	BOOST_TEST(rove::floor(-0.5f) == -1.0f);
+	BOOST_TEST(rove::floor(2.5) == 2.0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

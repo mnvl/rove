@@ -493,12 +493,12 @@ public:
 	/**
 	 * @brief Test intersection with another OBB
 	 *
-	 * Uses separating axis theorem (SAT) for accurate intersection test.
+	 * The separating axis theorem over its 15 axes: the 3 face axes of each box and the 9 cross products of their edges.
 	 *
 	 * @return true if the OBBs intersect
 	 */
 	bool test_intersection(obb const &box) const {
-		return !test_nonintersection(box) && !box.test_nonintersection(*this);
+		return !test_nonintersection(box);
 	}
 
 	/**
@@ -515,8 +515,8 @@ public:
 	/**
 	 * @brief Test collision with moving triangle
 	 *
-	 * Checks if this OBB will collide with a moving triangle during
-	 * the specified time interval.
+	 * Whether they meet at some time in the interval, the triangle being at tri + vel * t at time t.  The separating axis theorem
+	 * for moving shapes: each axis says when the two overlap on it, and they meet if those times have one in common.
 	 *
 	 * @param vel Relative velocity of the triangle
 	 * @param t_min Start of time interval (default 0)
@@ -532,8 +532,7 @@ public:
 	/**
 	 * @brief Test collision with moving OBB
 	 *
-	 * Checks if this OBB will collide with another moving OBB during
-	 * the specified time interval.
+	 * Whether they meet at some time in the interval, the other box being at box + vel * t at time t: see the triangle's overload.
 	 *
 	 * @param vel Relative velocity of the other box
 	 * @param t_min Start of time interval (default 0)
@@ -543,8 +542,7 @@ public:
 	bool test_collision(obb const &box, vec_type const &vel, T t_min = 0,
 		T t_max = 1) const
 	{
-		return !test_noncollision(box, vel, t_min, t_max)
-		    && !box.test_noncollision(*this, -vel, t_min, t_max);
+		return !test_noncollision(box, vel, t_min, t_max);
 	}
 
 	/**
@@ -552,8 +550,9 @@ public:
 	 *
 	 * Each face of the original box is extruded along the displacement vector
 	 * to produce a thin OBB that covers the region swept by that face.
-	 * Together the 6 OBBs conservatively cover the entire swept volume,
-	 * preventing tunneling through thin geometry.
+	 * Together the 6 OBBs cover what the box's surface passes over, which is what stops it tunnelling through thin geometry.  They do
+	 * not cover all of the swept volume: the inside of the box at its start and at its end is in none of them, unless a face passes
+	 * through it.  Test those two boxes as well for something that may lie wholly inside.
 	 *
 	 * @param box      The OBB at its starting position
 	 * @param displacement  Motion vector (end position minus start position)
@@ -592,7 +591,7 @@ public:
 	 *                   Default 1e-2 corresponds to ~0.6° maximum parallelism.
 	 * @return true if the edge vectors are linearly independent
 	 */
-	bool is_basis_linearly_independent(T tolerance = T(1e-2)) const;
+	bool is_basis_linearly_independent(T tolerance = detail::constant_of<T>(1e-2)) const;
 
 	/**
 	 * @brief Test whether this OBB is degenerate (has near-zero volume)
@@ -612,20 +611,20 @@ public:
 	 *                   Default 1e-2 corresponds to ~0.6° maximum parallelism.
 	 * @return true if the OBB is degenerate
 	 */
-	bool is_degenerate(T tolerance = T(1e-2)) const;
+	bool is_degenerate(T tolerance = detail::constant_of<T>(1e-2)) const;
 
 private:
 	// check for non-intersection with triangle
 	bool test_nonintersection(triangle<dimensions, T> const &r) const;
 
-	// check for one-sided non-intersection with obb
+	// check for non-intersection with obb
 	bool test_nonintersection(obb const &r) const;
 
 	// check for one-sided non-collision with triangle
 	bool test_noncollision(triangle<dimensions, T> const &r, vec_type const &vel, T t_min = 0,
 		T t_max = 1) const;
 
-	// check for one-sided non-collision with obb
+	// check for non-collision with obb
 	bool test_noncollision(obb const &r, vec_type const &vel, T t_min = 0,
 		T t_max = 1) const;
 };

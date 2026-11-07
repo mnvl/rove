@@ -22,7 +22,8 @@ namespace rove
 namespace detail
 {
 
-/// Keep the candidate where it comes first: a penetration over a touch, the deeper penetration, the earlier touch.
+/// Keep the candidate where it comes first, as contact_info::worse_than ranks them: a penetration over a touch, the shallower
+/// penetration, the earlier touch.
 template<int N, class S>
 void keep_first(std::optional<contact_info<N, S>> &best, std::optional<contact_info<N, S>> const &candidate)
 {
@@ -35,8 +36,9 @@ void keep_first(std::optional<contact_info<N, S>> &best, std::optional<contact_i
 /// When a sphere moving by `move` over a step of unit time first touches a sphere standing still.
 ///
 /// Overlapping by more than `skin` at the start is a penetration at time 0, `penetration_depth` how far; overlapping
-/// by less, or just touching, is a touch at time 0.  `position` is the moving sphere's centre at the touch, `normal`
-/// the unit vector from the still sphere's centre to it.  Empty when they do not touch: `time` is not bounded above,
+/// by less, or just touching, is a touch at time 0.  `position` is the moving sphere's centre at a touch; on a penetration it is
+/// the deepest point of the moving sphere inside the still one.  `normal` is the unit vector from the still sphere's centre to the
+/// moving one.  Empty when they do not touch: `time` is not bounded above,
 /// a touch further on than `move` comes back with a time past 1.
 template<int N, class S>
 [[nodiscard]] std::optional<contact_info<N, S>> first_contact(sphere<N, S> const &still, sphere<N, S> const &ball, vec<N, S> const &move,
@@ -95,7 +97,7 @@ template<int N, class S>
 		S const t2 = (-B - discriminant_sqrt) / (2 * A);
 
 		if (t1 > 0) {
-			if (t2 > 0) ci.time = std::min(t1, t2);
+			if (t2 > 0) ci.time = (std::min)(t1, t2);
 			else ci.time = t1;
 		} else {
 			if (t2 > 0) ci.time = t2;
@@ -233,7 +235,7 @@ template<int N, class T>
 	for (vec_type const *v : {&from.axe.A, &from.axe.B, &to.axe.A, &to.axe.B, &ball.centre, &move})
 		v->check_finite("first_contact: a point or a move");
 
-	T const rate = move.length() + std::max((to.axe.A - from.axe.A).length(), (to.axe.B - from.axe.B).length()) +
+	T const rate = move.length() + (std::max)((to.axe.A - from.axe.A).length(), (to.axe.B - from.axe.B).length()) +
 		abs(to.radius - from.radius);
 	T t = 0;
 	while (true)
@@ -257,7 +259,18 @@ template<int N, class T>
 		}
 		if (rate == 0)
 			return std::nullopt;
-		t += gap / rate;
+		T const next_t = t + gap / rate;
+		// The gap left is below what time can tell at this t: nothing nearer can be found, so this is the touch.
+		if (!(next_t > t))
+		{
+			contact_info<N, T> ci{};
+			ci.happened = true;
+			ci.time = t;
+			ci.normal = apart > 0 ? (centre - nearest) / apart : vec_type();
+			ci.position = nearest + ci.normal * radius;
+			return ci;
+		}
+		t = next_t;
 		if (t > 1)
 			return std::nullopt;
 	}

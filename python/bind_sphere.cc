@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/ndarray.h>
@@ -78,15 +79,16 @@ void bind_sphere2(nb::module_ &m, char const *name) {
 			 },
 			 nb::arg("line"),
 			 "Intersect circle with segment. Returns (count, p1, p2); count is 0, 1, or 2.")
-		.def("__repr__", [](Sphere const &s) {
-			std::ostringstream ss;
-			ss << "sphere2(centre=" << s.centre << ", radius=" << s.radius << ")";
+		.def("__repr__", [name](Sphere const &s) {
+			bind_text::repr_stream ss;
+			ss << name << "(centre=" << s.centre << ", radius=" << s.radius << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Sphere const &s) {
 			return nb::make_tuple(s.centre, s.radius);
 		})
 		.def("__setstate__", [](Sphere &s, nb::tuple t) {
+			check_state(t, 2, "Sphere.__setstate__");
 			s.centre = nb::cast<Vec2>(t[0]);
 			s.radius = nb::cast<T>(t[1]);
 		});
@@ -123,15 +125,16 @@ void bind_sphere3(nb::module_ &m, char const *name) {
 			 nb::overload_cast<Sphere const &>(&Sphere::test_intersection, nb::const_),
 			 nb::arg("other"),
 			 "Test intersection with another sphere")
-		.def("__repr__", [](Sphere const &s) {
-			std::ostringstream ss;
-			ss << "sphere3(centre=" << s.centre << ", radius=" << s.radius << ")";
+		.def("__repr__", [name](Sphere const &s) {
+			bind_text::repr_stream ss;
+			ss << name << "(centre=" << s.centre << ", radius=" << s.radius << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Sphere const &s) {
 			return nb::make_tuple(s.centre, s.radius);
 		})
 		.def("__setstate__", [](Sphere &s, nb::tuple t) {
+			check_state(t, 2, "Sphere.__setstate__");
 			s.centre = nb::cast<Vec3>(t[0]);
 			s.radius = nb::cast<T>(t[1]);
 		});

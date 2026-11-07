@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#ifdef ROVE_DFLOAT
+#include "dfloat.h"
+#endif
 #include <cassert>
 #include "aabb.h"
 #include "obb.h"
@@ -44,7 +47,8 @@ plane<T>::query_intersection(plane const &p, ray_type &r) const {
 	else if (dir2.y > dir2.x && dir2.y > scalar_traits<T>::zero_length_sq)
 	{
 		/* then get a point on the XZ plane */
-		invdet = T(1) / r.a.y;
+		/* (the determinant of this pair is A p.C - C p.A, which is -a.y) */
+		invdet = T(-1) / r.a.y;
 		/* solve < pl1.x * xpt.x + pl1.z * xpt.z = -pl1.w >
 		< pl2.x * xpt.x + pl2.z * xpt.z = -pl2.w > */
 		r.r0.x = C * p.D - p.C * D;
@@ -112,5 +116,8 @@ plane<T>::classify(obb<dimensions, T> const &bounds, T epsilon) const
 
 template class plane<>;
 template class plane<double>;
+#ifdef ROVE_DFLOAT
+template class plane<dfloat>;
+#endif
 
 }

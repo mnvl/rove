@@ -95,8 +95,8 @@ public:
 		cell_size_(cell_size),
 		axes_{(up + 1) % 3, (up + 2) % 3}
 	{
-		if (!(cell_size > 0) || !std::isfinite(cell_size))
-			throw std::invalid_argument("hash_grid: cell_size must be finite and positive, got " + std::to_string(cell_size));
+		if (!(cell_size > 0) || !rove::isfinite(cell_size))
+			throw std::invalid_argument("hash_grid: cell_size must be finite and positive, got " + detail::to_string_of(cell_size));
 		if (up < 0 || up > 2)
 			throw std::invalid_argument("hash_grid: up must be 0, 1 or 2, got " + std::to_string(up));
 	}
@@ -153,9 +153,9 @@ public:
 		aabb_type const b = traits_type::bounds(primitive);
 		b.check_finite("hash_grid: an item's bounds");
 		for (int a : axes_)
-			if (!(std::abs(b.lo.i[a] / cell_size_) < limit && std::abs(b.hi.i[a] / cell_size_) < limit))
+			if (!(abs(b.lo.i[a] / cell_size_) < limit && abs(b.hi.i[a] / cell_size_) < limit))
 				throw std::out_of_range("hash_grid: an item beyond 2^30 columns from the origin");
-		if (items_.size() >= std::numeric_limits<index_type>::max())
+		if (items_.size() >= (std::numeric_limits<index_type>::max)())
 			throw std::length_error("hash_grid: full");
 
 		index_type const index = index_type(items_.size());
@@ -237,7 +237,7 @@ public:
 	{
 		r.check_finite("hash_grid: a ray");
 		if (!(t_min <= t_max))
-			throw std::invalid_argument("hash_grid: trace over [" + std::to_string(t_min) + ", " + std::to_string(t_max) + "]");
+			throw std::invalid_argument("hash_grid: trace over [" + detail::to_string_of(t_min) + ", " + detail::to_string_of(t_max) + "]");
 		contact_type best;
 		best.happened = false;
 		if (items_.empty())
@@ -257,8 +257,8 @@ public:
 			scalar_type ta = (bounds_.lo.i[a] - o) / d, tb = (bounds_.hi.i[a] - o) / d;
 			if (ta > tb)
 				std::swap(ta, tb);
-			t0 = std::max(t0, ta);
-			t1 = std::min(t1, tb);
+			t0 = (std::max)(t0, ta);
+			t1 = (std::min)(t1, tb);
 		}
 		if (t0 > t1)
 			return best;
@@ -269,8 +269,8 @@ public:
 		{
 			scalar_type const o = r.r0.i[k], d = r.a.i[k];
 			scalar_type const a = d == 0 ? o : o + d * t_min, b = d == 0 ? o : o + d * t_max;
-			span.lo.i[k] = std::min(a, b);
-			span.hi.i[k] = std::max(a, b);
+			span.lo.i[k] = (std::min)(a, b);
+			span.hi.i[k] = (std::max)(a, b);
 		}
 
 		cell const first = cell_of(r.apply(t0)), lo = cell_of(bounds_.lo), hi = cell_of(bounds_.hi);
@@ -336,7 +336,7 @@ private:
 
 	cell cell_of(vec_type const &p) const
 	{
-		return cell{int32_t(std::floor(p.i[axes_[0]] / cell_size_)), int32_t(std::floor(p.i[axes_[1]] / cell_size_))};
+		return cell{int32_t(rove::floor(p.i[axes_[0]] / cell_size_)), int32_t(rove::floor(p.i[axes_[1]] / cell_size_))};
 	}
 
 	// Calls f once for each item the query meets.  An item listed in several
@@ -347,15 +347,15 @@ private:
 	{
 		aabb_type q = QueryTraits::bounds(query);
 		for (int k = 0; k < 3; ++k)
-			if (std::isnan(q.lo.i[k]) || std::isnan(q.hi.i[k]))
+			if (rove::isnan(q.lo.i[k]) || rove::isnan(q.hi.i[k]))
 				throw std::invalid_argument("hash_grid: a query with NaN bounds");
 		if (items_.empty() || !q.test_intersection(bounds_))
 			return;
 		// only the grid's part of the query: keeps the column numbers in range
 		for (int a : axes_)
 		{
-			q.lo.i[a] = std::max(q.lo.i[a], bounds_.lo.i[a]);
-			q.hi.i[a] = std::min(q.hi.i[a], bounds_.hi.i[a]);
+			q.lo.i[a] = (std::max)(q.lo.i[a], bounds_.lo.i[a]);
+			q.hi.i[a] = (std::min)(q.hi.i[a], bounds_.hi.i[a]);
 		}
 		cell const lo = cell_of(q.lo), hi = cell_of(q.hi);
 		auto column = [&](cell const &c, std::vector<index_type> const &items) {
@@ -365,7 +365,7 @@ private:
 				if (!b.test_intersection(q))
 					continue;
 				cell const &first = first_of_[i];
-				if (c.u != std::max(first.u, lo.u) || c.v != std::max(first.v, lo.v))
+				if (c.u != (std::max)(first.u, lo.u) || c.v != (std::max)(first.v, lo.v))
 					continue;
 				if (QueryTraits::intersects(items_[i].primitive, query))
 					f(i);

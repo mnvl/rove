@@ -555,4 +555,14 @@ BOOST_AUTO_TEST_CASE(default_is_a_point_at_the_origin_not_whatever_the_memory_he
 	BOOST_REQUIRE_EQUAL(c.radius, 0.0f);
 }
 
+BOOST_AUTO_TEST_CASE(capsule_bounds_of_every_kind)
+{
+	rove::capsule<3, double> const d(rove::vec<3, double>(0, 0, 0), rove::vec<3, double>(1, 2, 3), 0.5);
+	BOOST_TEST(d.bounds().lo.x == -0.5);
+	BOOST_TEST(d.bounds().hi.z == 3.5);
+	rove::capsule<2> const c(rove::vec<2>(0, 0), rove::vec<2>(1, 2), 0.5f);
+	BOOST_TEST(c.bounds().lo.y == -0.5f);
+	BOOST_TEST(c.bounds().hi.x == 1.5f);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

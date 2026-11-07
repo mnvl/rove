@@ -1,17 +1,20 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2004-2026 Manvel Avetisian
+
 [build-system]
 requires = ["scikit-build-core>=0.10", "nanobind==2.4.0"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "pyrove"
-version = "3.0.0"
+version = "3.0.1"
 description = "Math and geometry for games, robotics and simulation: vectors, matrices, quaternions, shapes, collisions and spatial indices"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [{ name = "Manvel Avetisian" }]
 license = "MIT"
 license-files = ["LICENSE.md"]
-dependencies = ["numpy"]
+dependencies = ["numpy>=1.19.3"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -21,6 +24,12 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Free Threading :: 2 - Beta",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Games/Entertainment",
@@ -42,14 +51,17 @@ cmake.version = ">=3.15"
 build-dir = "build/{wheel_tag}"
 wheel.packages = ["pyrove"]
 # (anchored: an unanchored "src" would take build/*/src too)
-sdist.include = ["/src", "/include", "/python", "/pyrove/*.py", "/CMakeLists.txt", "/LICENSE.md", "/README.md", "/CHANGELOG.md"]
-sdist.exclude = ["/build", "__pycache__", "/tests", "/examples", "/docs", "/.github", "/ports"]
+sdist.include = ["/src", "/include", "/python", "/pyrove/*.py", "/pyrove/*.pyi", "/pyrove/py.typed", "/tests", "/examples", "/docs", "/CMakeLists.txt", "/LICENSE.md", "/README.md", "/CHANGELOG.md"]
+sdist.exclude = ["/build", "__pycache__", "/.github", "/ports"]
 
 [tool.scikit-build.cmake.define]
 ROVE_PYTHON = "ON"
 ROVE_TESTS = "OFF"
 ROVE_INSTALL = "OFF"
 ROVE_LTO = "OFF"
+# On Windows the C++ runtime goes in the extension: a bundled msvcp140 older than the toolset is not a combination Microsoft supports, and
+# delvewheel renames its copy so that a newer one on the system is never used.  Elsewhere this says nothing.
+CMAKE_MSVC_RUNTIME_LIBRARY = "MultiThreaded"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

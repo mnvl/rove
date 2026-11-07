@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#include <cmath>
 #include <random>
 #include <boost/test/unit_test.hpp>
 #include <rove/obb.h>
@@ -8,6 +9,7 @@
 #include <rove/capsule.h>
 #include <rove/ray.h>
 #include <rove/matrix.h>
+#include <rove/triangle.h>
 #include "test_tolerance.h"
 
 BOOST_AUTO_TEST_SUITE(obb)
@@ -999,6 +1001,108 @@ BOOST_AUTO_TEST_CASE(trace_agrees_with_the_timed_slab_test_on_random_rays)
 	}
 	BOOST_REQUIRE(hits > 1000);       // the comparison saw both answers often
 	BOOST_REQUIRE(hits < 19000);
+}
+
+namespace
+{
+using v3 = rove::vec<3>;
+rove::obb<3> unit_box(v3 const &o = v3(0, 0, 0))
+{
+	return rove::obb<3>(o, v3(1, 0, 0), v3(0, 1, 0), v3(0, 0, 1));
+}
+}
+
+// The triangle comes in face on, so its plane separates it from the box at the start and only there
+BOOST_AUTO_TEST_CASE(a_triangle_swept_face_on_into_the_box_collides)
+{
+	rove::triangle<3> const wall(v3(-10, -10, 3), v3(10, -10, 3), v3(0, 10, 3));
+	BOOST_TEST(unit_box().test_collision(wall, v3(0, 0, -3)));
+	BOOST_TEST(unit_box().test_collision(wall, v3(0, 0, -2.5f)));
+	BOOST_TEST(!unit_box().test_collision(wall, v3(0, 0, -1.5f)));
+	BOOST_TEST(!unit_box().test_collision(wall, v3(0, 0, 3)));
+}
+
+BOOST_AUTO_TEST_CASE(a_triangle_swept_past_a_corner_does_not_collide)
+{
+	// standing still by the corner: the box's axes and the triangle's plane all overlap, an edge's axis separates
+	rove::triangle<3> const by_the_corner(v3(1.6f, 1, 0.2f), v3(1, 1.6f, 0.2f), v3(1.3f, 1.3f, 0.8f));
+	BOOST_TEST(!unit_box().test_intersection(by_the_corner));
+	BOOST_TEST(!unit_box().test_collision(by_the_corner, v3(0, 0, 0)));
+	// moving on the far side of the corner along (1, -1, 0): the box's axes each overlap at some time
+	rove::triangle<3> const passing(v3(-1, 3.2f, 0.2f), v3(-1, 3.2f, 0.8f), v3(-0.5f, 3.7f, 0.5f));
+	BOOST_TEST(!unit_box().test_collision(passing, v3(4, -4, 0)));
+}
+
+// The overlap has to fall in [t_min, t_max]: the time counts forward from the positions given
+BOOST_AUTO_TEST_CASE(a_collision_counts_only_in_its_time_interval)
+{
+	// the other box reaches the unit box at t = 4 (x = 5 - t) and has left at t = 6
+	rove::obb<3> const other = unit_box(v3(5, 0, 0));
+	v3 const vel(-1, 0, 0);
+	BOOST_TEST(unit_box().test_collision(other, vel, 4, 6));
+	BOOST_TEST(unit_box().test_collision(other, vel, 0, 6));
+	BOOST_TEST(unit_box().test_collision(other, vel, 5, 5));
+	BOOST_TEST(!unit_box().test_collision(other, vel, 0, 3.9f));
+	BOOST_TEST(!unit_box().test_collision(other, vel, 6.1f, 20));
+	rove::triangle<3> const t(v3(5, 0.2f, 0.2f), v3(5, 0.8f, 0.2f), v3(5, 0.2f, 0.8f));
+	BOOST_TEST(unit_box().test_collision(t, vel, 4, 6));
+	BOOST_TEST(!unit_box().test_collision(t, vel, 0, 3.9f));
+	BOOST_TEST(!unit_box().test_collision(t, vel, 5.1f, 20));
+}
+
+BOOST_AUTO_TEST_CASE(boxes_moving_together_collide_only_as_they_overlap)
+{
+	// separated at the start and the end of the interval and on no one axis all the way through
+	rove::obb<3> const passing = unit_box(v3(-3, 0, 0));
+	BOOST_TEST(unit_box().test_collision(passing, v3(6, 0, 0)));
+	rove::obb<3> const miss = unit_box(v3(-3, 2, 0));
+	BOOST_TEST(!unit_box().test_collision(miss, v3(6, 0, 0)));
+	// diagonal motion: its box overlaps on x during [4, 6] and on y during [0, 1], never on both
+	BOOST_TEST(!unit_box().test_collision(unit_box(v3(-5, 0, 0)), v3(1, 1, 0), 0, 10));
+	// the same motion that does reach: x during [4, 6], y during [3, 5]
+	BOOST_TEST(unit_box().test_collision(unit_box(v3(-5, -4, 0)), v3(1, 1, 0), 0, 10));
+}
+
+// Two boxes whose faces do not separate them and an edge-edge axis does
+BOOST_AUTO_TEST_CASE(boxes_separated_only_by_an_edge_axis_do_not_intersect)
+{
+	// a rotated unit cube: on all 6 face axes it overlaps the unit cube at (0, 0, 0), and on a cross product of edges it is 0.35 away
+	v3 const t(1 / 3.0f, 2 / 3.0f, -2 / 3.0f), n(2 / 3.0f, 1 / 3.0f, 2 / 3.0f), b(2 / 3.0f, -2 / 3.0f, -1 / 3.0f);
+	rove::obb<3> const beside(v3(-1.6f, 1.6f, -0.6f), t, n, b);
+	BOOST_TEST(!unit_box().test_intersection(beside));
+	BOOST_TEST(!beside.test_intersection(unit_box()));
+	BOOST_TEST(!unit_box().test_collision(beside, v3(0, 0, 0)));
+	// the same box with its centre in the cube's
+	rove::obb<3> const inside(v3(-1 / 3.0f, 1 / 3.0f, 2 / 3.0f), t, n, b);
+	BOOST_TEST(unit_box().test_intersection(inside));
+	BOOST_TEST(inside.test_intersection(unit_box()));
+}
+
+BOOST_AUTO_TEST_CASE(a_random_pair_of_boxes_agrees_with_sampling_the_one_inside_the_other)
+{
+	std::mt19937 gen(11);
+	std::uniform_real_distribution<float> u(-1, 1);
+	int intersecting = 0, separate = 0;
+	for (int i = 0; i < 4000; ++i) {
+		v3 const t = normalize(v3(u(gen), u(gen), u(gen)));
+		v3 const n = normalize(cross(t, v3(u(gen), u(gen), u(gen))));
+		v3 const b = cross(t, n);
+		rove::obb<3> const a = unit_box();
+		rove::obb<3> const o(v3(u(gen), u(gen), u(gen)) * 2.5f, t, n, b);
+		bool const reported = a.test_intersection(o);
+		BOOST_REQUIRE(reported == o.test_intersection(a));
+		(reported ? intersecting : separate)++;
+		if (!reported) {
+			// separated boxes hold no point in common
+			for (int s = 0; s < 400; ++s) {
+				v3 const p = o.origin + t * ((u(gen) + 1) / 2) + n * ((u(gen) + 1) / 2) + b * ((u(gen) + 1) / 2);
+				bool const in_a = p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1 && p.z >= 0 && p.z <= 1;
+				BOOST_REQUIRE(!in_a);
+			}
+		}
+	}
+	BOOST_TEST(intersecting > 100);
+	BOOST_TEST(separate > 100);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

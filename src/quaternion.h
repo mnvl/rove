@@ -84,8 +84,8 @@ public:
 	/// rotation.  (It became the identity, so a lerp of opposite quaternions or a damaged key turned into no rotation at all.)
 	void normalize() {
 		T n = norm();
-		using std::isfinite, std::to_string;
-		if (!(n > scalar_traits<T>::zero_length) || !isfinite(n))
+		using std::to_string;
+		if (!(n > scalar_traits<T>::zero_length) || !rove::isfinite(n))
 			throw std::invalid_argument("rove: normalize a quaternion of norm " + to_string(n));
 		scale(1/n);
 	}
@@ -198,13 +198,15 @@ conjugate(quaternion<T> const &q) {
 
 /**
  * @brief The unit quaternion turning by `angle` (radians) about `axis`
- * @param axis A unit vector
+ * @param axis Of any length, as rotation_matrix takes it; one of no length is std::invalid_argument
  */
 template<class T, class S> inline quaternion<T>
 axis_angle(vec<3, T, S> const &axis, T angle) {
 	using std::sin, std::cos;
 	T const s = sin(angle / 2);
-	return quaternion<T>(axis.x * s, axis.y * s, axis.z * s, cos(angle / 2));
+	// (unit to within rounding is left as it is: what was right keeps its bits)
+	vec<3, T, S> const unit = abs(axis.length_sq() - T(1)) <= T(1) / T(100000) ? axis : normalize(axis);
+	return quaternion<T>(unit.x * s, unit.y * s, unit.z * s, cos(angle / 2));
 }
 
 /**
@@ -228,8 +230,8 @@ namespace detail
 template<class T> inline T
 norm_sq_of_a_rotation(quaternion<T> const &q, char const *what) {
 	T const n2 = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
-	using std::isfinite, std::to_string;
-	if (!(n2 > scalar_traits<T>::zero_length_sq) || !isfinite(n2))
+	using std::to_string;
+	if (!(n2 > scalar_traits<T>::zero_length_sq) || !rove::isfinite(n2))
 		throw std::invalid_argument(std::string("rove: ") + what + " of a quaternion of squared norm " + to_string(n2));
 	return n2;
 }
@@ -391,7 +393,7 @@ public:
 			cosine = -cosine;
 		}
 
-		cosine = std::min(T(1), std::max(T(-1), cosine));
+		cosine = (std::min)(T(1), (std::max)(T(-1), cosine));
 		if (cosine >= T(1) - scalar_traits<T>::zero_angle) {
 			linear_ = true;
 			omega_ = 0;
@@ -411,6 +413,22 @@ public:
 		T const inv_sin_omega = T(1 / sin_omega);
 		q1_.scale(inv_sin_omega);
 		q2_.scale(inv_sin_omega);
+	}
+
+	/// How many numbers save_state() writes
+	static constexpr size_t state_size = 10;
+
+	/// What setup() left, in numbers, for load_state() to take back exactly (setup() on the ends would round them again)
+	void save_state(T *out) const {
+		T const values[state_size] = {q1_.x, q1_.y, q1_.z, q1_.w, q2_.x, q2_.y, q2_.z, q2_.w, omega_, T(linear_ ? 1 : 0)};
+		for (size_t k = 0; k < state_size; ++k) out[k] = values[k];
+	}
+
+	void load_state(T const *in) {
+		q1_ = quaternion<T>(in[0], in[1], in[2], in[3]);
+		q2_ = quaternion<T>(in[4], in[5], in[6], in[7]);
+		omega_ = in[8];
+		linear_ = in[9] != T(0);
 	}
 
 	/**

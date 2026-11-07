@@ -40,8 +40,6 @@ constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 /// floor(2^256 * 2 / pi), most significant word first.
 constexpr std::uint32_t TWO_OVER_PI[8] = {0xa2f9836e, 0x4e441529, 0xfc2757d1, 0xf534ddc0, 0xdb629599, 0x3c439041, 0xfe5163ab, 0xdebbc561};
 
-bool is_nan(double v) { return v != v; }
-
 /// 2^k for k in [-1022, 1023], built from its bits.
 double two_to(int k) { return std::bit_cast<double>(std::uint64_t(k + 1023) << 52); }
 

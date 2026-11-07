@@ -17,13 +17,16 @@ struct [[nodiscard]] contact_info {
 	static constexpr size_t dimensions = N;
 	using vec_type = vec<dimensions, T>;
 
-	bool happened, penetrated;
+	// (all of it defined on a miss too: nothing here is left unset for a reader to trip on)
+	bool happened = false, penetrated = false;
 	vec_type position, normal;
-	T time, penetration_depth;
+	T time = T(0), penetration_depth = T(0);
 	/// Which item of a collection was hit (hash_grid::trace); empty for one
 	/// shape against another.
 	std::optional<size_t> index;
 
+	/// Whether `ci` comes before this one: any contact over none, a penetration over a touch, the shallower of two penetrations, the
+	/// earlier of two touches
 	bool worse_than(contact_info const &ci) const {
 		if (ci.happened == false) return false;
 		if (happened == false) return true;

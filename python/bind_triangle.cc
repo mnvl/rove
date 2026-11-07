@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <sstream>
@@ -91,15 +92,16 @@ void bind_triangle3(nb::module_ &m, char const *name) {
 			 "Test if ray intersects triangle within parameter range; a determinant under epsilon counts as parallel")
 		// Note: test_intersection and query_intersection are not bound because
 		// they depend on line::query_intersection which is not implemented in C++
-		.def("__repr__", [](Triangle const &t) {
-			std::ostringstream ss;
-			ss << "triangle3(A=" << t.A << ", B=" << t.B << ", C=" << t.C << ")";
+		.def("__repr__", [name](Triangle const &t) {
+			bind_text::repr_stream ss;
+			ss << name << "(A=" << t.A << ", B=" << t.B << ", C=" << t.C << ")";
 			return ss.str();
 		})
 		.def("__getstate__", [](Triangle const &t) {
 			return nb::make_tuple(t.A, t.B, t.C);
 		})
 		.def("__setstate__", [](Triangle &t, nb::tuple state) {
+			check_state(state, 3, "Triangle.__setstate__");
 			t.A = nb::cast<Vec3>(state[0]);
 			t.B = nb::cast<Vec3>(state[1]);
 			t.C = nb::cast<Vec3>(state[2]);

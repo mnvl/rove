@@ -14,7 +14,31 @@
 
 #include <nanobind/nanobind.h>
 
+#include <cstddef>
+#include <string>
+
 namespace nb = nanobind;
+
+/// A pickled state of the size a __setstate__ reads, or ValueError: a tuple is not checked when indexed, and a malformed pickle would
+/// read past it
+inline void check_state(nb::tuple const &state, size_t size, char const *what)
+{
+	if (state.size() != size)
+		throw nb::value_error((std::string(what) + ": a state of " + std::to_string(state.size()) + " items, not " + std::to_string(size)).c_str());
+}
+
+/// The value protocol on a class with a __getstate__, by that state: == and != (NotImplemented for another type, so Python says False),
+/// a hash that goes with them, and pickling and copying at any protocol
+void install_value_protocol(nb::handle cls);
+
+/// Pickling and copying at any protocol by __getstate__: what a class with an == of its own still needs
+void install_pickling(nb::handle cls);
+
+/// The type of SingularMatrixError
+PyObject *singular_matrix_error();
+
+/// to_numpy as numpy's own conversion, and numbers on the left leaving the operator to the vector or matrix
+void install_numpy_protocol(nb::handle cls);
 
 /// @brief Bind vec2 class to Python module
 template<class T>

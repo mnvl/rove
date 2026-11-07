@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -92,10 +93,10 @@ void bind_frustum(nb::module_ &m, char const *name) {
 		.def_prop_ro_static("near_plane", [](nb::handle) { return int(Frustum::near_plane); }, "The near plane's index")
 		.def_prop_ro_static("far_plane", [](nb::handle) { return int(Frustum::far_plane); }, "The far plane's index")
 		.def("__repr__", [name](Frustum const &f) {
-			std::ostringstream ss;
+			bind_text::repr_stream ss;
 			ss << name << "(planes=[";
 			for (int i = 0; i < 6; i++) {
-				ss << "plane(A=" << f.planes[i].A
+				ss << name << "(A=" << f.planes[i].A
 				   << ", B=" << f.planes[i].B
 				   << ", C=" << f.planes[i].C
 				   << ", D=" << f.planes[i].D << ")";
@@ -110,6 +111,7 @@ void bind_frustum(nb::module_ &m, char const *name) {
 				f.planes[3], f.planes[4], f.planes[5]);
 		})
 		.def("__setstate__", [](Frustum &f, nb::tuple t) {
+			check_state(t, 6, "frustum.__setstate__");
 			for (int i = 0; i < 6; i++) {
 				f.planes[i] = nb::cast<Plane>(t[i]);
 			}

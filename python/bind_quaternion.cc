@@ -7,6 +7,7 @@
  */
 
 #include "python_bindings.h"
+#include "bind_text.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/ndarray.h>
@@ -27,7 +28,7 @@ void bind_quaternion(nb::module_ &m, char const *name) {
 	nb::class_<Quat>(m, name)
 		.def(nb::init<>())
 		.def(nb::init<T, T, T, T>(), nb::arg("x"), nb::arg("y"), nb::arg("z"), nb::arg("w"))
-		.def_static("from_numpy", [](nb::ndarray<T, nb::shape<4>> arr) {
+		.def_static("from_numpy", [](nb::ndarray<T const, nb::shape<4>> arr) {
 			return Quat(arr(0), arr(1), arr(2), arr(3));
 		}, nb::arg("array"), "Create quaternion from numpy array")
 		.def("to_numpy", [](Quat const &q) {
@@ -55,9 +56,9 @@ void bind_quaternion(nb::module_ &m, char const *name) {
 		.def("__mul__", [](Quat const &q, Vec3 const &v) { return q * v; },
 			"v turned by q (any length but none: ValueError), as rotate(q, v)")
 		.def("__rmul__", [](Quat const &q, T s) { return q * s; })
-		.def("__repr__", [](Quat const &q) {
-			std::ostringstream ss;
-			ss << "quat(" << q.x << ", " << q.y << ", " << q.z << ", " << q.w << ")";
+		.def("__repr__", [name](Quat const &q) {
+			bind_text::repr_stream ss;
+			ss << name << "(" << q.x << ", " << q.y << ", " << q.z << ", " << q.w << ")";
 			return ss.str();
 		})
 		.def("dot", [](Quat const &p, Quat const &q) {
@@ -67,6 +68,7 @@ void bind_quaternion(nb::module_ &m, char const *name) {
 			return nb::make_tuple(q.x, q.y, q.z, q.w);
 		})
 		.def("__setstate__", [](Quat &q, nb::tuple t) {
+			check_state(t, 4, "Quat.__setstate__");
 			q.x = nb::cast<T>(t[0]);
 			q.y = nb::cast<T>(t[1]);
 			q.z = nb::cast<T>(t[2]);
@@ -81,6 +83,20 @@ void bind_quaternion_slerper(nb::module_ &m, char const *name) {
 
 	nb::class_<Slerper>(m, name)
 		.def(nb::init<>())
+		.def("__getstate__", [](Slerper const &s) {
+			T values[Slerper::state_size];
+			s.save_state(values);
+			nb::list out;
+			for (T const value : values) out.append(value);
+			return nb::tuple(out);
+		})
+		.def("__setstate__", [](Slerper &s, nb::tuple t) {
+			check_state(t, Slerper::state_size, "quat_slerper.__setstate__");
+			T values[Slerper::state_size];
+			for (size_t k = 0; k < Slerper::state_size; ++k) values[k] = nb::cast<T>(t[k]);
+			new (&s) Slerper();
+			s.load_state(values);
+		})
 		.def("setup", &Slerper::setup, nb::arg("p"), nb::arg("q"),
 			 "Setup SLERP between two quaternions")
 		.def("interpolate", nb::overload_cast<T>(&Slerper::interpolate, nb::const_),
@@ -95,6 +111,9 @@ static void bind_quaternion_operations(nb::module_ &m) {
 	using Mat3 = rove::matrix<3, 3, T>;
 	using Mat4 = rove::matrix<4, 4, T>;
 	m.def("dot", [](Quat const &p, Quat const &q) { return rove::dot(p, q); }, nb::arg("p"), nb::arg("q"), "The dot product");
+	m.def("conjugate", [](Quat const &q) { return rove::conjugate(q); }, nb::arg("q"), "The quaternion with x, y and z negated");
+	m.def("axis_angle", [](Vec3 const &axis, T angle) { return rove::axis_angle(axis, angle); }, nb::arg("axis"), nb::arg("angle"),
+		"The unit quaternion turning by angle (radians) about an axis of any length; ValueError for an axis of no length");
 	m.def("rotate", [](Quat const &q, Vec3 const &v) { return rove::rotate(q, v); }, nb::arg("q"), nb::arg("v"),
 		"v turned by q, a quaternion of any length but none (ValueError)");
 	m.def("inverse", [](Quat const &q) { return rove::inverse(q); }, nb::arg("q"),

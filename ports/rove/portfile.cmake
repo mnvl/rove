@@ -4,6 +4,8 @@
 # rove's vcpkg port, as an overlay port: vcpkg install rove --overlay-ports=<rove>/ports.
 # ROVE_SOURCE_DIR (passed through with VCPKG_KEEP_ENV_VARS=ROVE_SOURCE_DIR) builds a checkout instead of the release, which is
 # how CI tests the port before a version is tagged.
+vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
+
 if(DEFINED ENV{ROVE_SOURCE_DIR})
     set(SOURCE_PATH "$ENV{ROVE_SOURCE_DIR}")
 else()

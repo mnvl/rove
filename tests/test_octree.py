@@ -75,11 +75,11 @@ def test_an_empty_built_tree_round_trips():
     assert copy.query_aabb(copy.bounds) == []
 
 
-def test_an_unbuilt_tree_does_not_pickle():
+def test_an_unbuilt_tree_pickles_as_the_tree_it_would_build():
     tree = pyrove.OctreeTriangle3(pyrove.aabb3(pyrove.vec3(-1, -1, -1), pyrove.vec3(1, 1, 1)))
     tree.insert(pyrove.triangle3(pyrove.vec3(0, 0, 0), pyrove.vec3(1, 0, 0), pyrove.vec3(0, 1, 0)), 0)
-    with pytest.raises(Exception, match="build"):
-        pickle.dumps(tree)
+    back = pickle.loads(pickle.dumps(tree))
+    assert back.query_aabb(pyrove.aabb3(pyrove.vec3(-1, -1, -1), pyrove.vec3(1, 1, 1))) == [0]
 
 
 def test_a_damaged_state_is_refused():
