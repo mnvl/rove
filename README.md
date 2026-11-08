@@ -11,6 +11,9 @@ It began as the math of a game engine written from 2004 on, and was brought up t
 Python's geometry libraries were too slow or too limited and NumPy alone made per-object geometry awkward. Much of the
 binding code, refactorings and documentation were written with Claude and curated by the author.
 
+It is the math of [LIGA Football 11v11](https://liga.manvel.dev/), a free eleven-a-side football (soccer) game that plays in
+the browser, and of its deterministic simulation.
+
 Our benchmarks show that this library is 2x faster on average than what's available for Python right now when working
 on single objects (see examples/benchmark.py).
 
