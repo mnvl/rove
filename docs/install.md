@@ -58,6 +58,45 @@ The directory may have any name.
 If you also use [edge](https://github.com/mnvl/edge), check rove and edge out side by side (`external/rove`,
 `external/edge`) and add rove first: edge then uses that rove.
 
+## Python: a submodule, editable
+
+A project with rove as a submodule and Python of its own can import pyrove from the checkout, with the module its own CMake build makes,
+instead of a wheel. rove is checked out at the project's root (`rove/`) and the build is `build/`: pyrove looks for its module in
+`build/lib` beside the checkout.
+
+```cmake
+set(ROVE_PYTHON ON CACHE BOOL "" FORCE)
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)    # the module in build/lib, where pyrove finds it
+add_subdirectory(rove)
+```
+
+A `pyproject.toml` at the project's root installs your packages and pyrove's Python files from `rove/pyrove`, and compiles nothing:
+
+```toml
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my-project"
+version = "0.1.0"
+dependencies = ["numpy>=1.19.3"]
+
+[tool.setuptools.packages.find]
+where = [".", "rove"]
+namespaces = false              # packages are directories with an __init__.py
+include = ["my_package*", "pyrove*"]
+```
+
+```bash
+pip install -e .
+cmake -S . -B build -DPython_EXECUTABLE=$(which python) && cmake --build build
+python -c "import pyrove; print(pyrove.vec3(1, 2, 3))"      # from any directory, no PYTHONPATH
+```
+
+A rebuild is then all a change to rove's C++ needs. Don't also `pip install -e rove`: that compiles a module into the package it
+installs, which is loaded instead of the one in `build/lib`. `ROVE_PYTHON_BINDINGS_DIR` names another directory than `build/lib`.
+
 ## C++: FetchContent
 
 Without a submodule, CMake can fetch rove at configure time:
