@@ -7,12 +7,10 @@ spheres, boxes, capsules, frustums), the queries between them, continuous collis
 pathfinding and reproducible random numbers. It has no dependencies, compiles as one small static library, and gives
 Python the same types with NumPy conversion, at C++ speed.
 
-It began as the math of a game engine written from 2004 on, and was brought up to C++20 for robotics simulation, where
-Python's geometry libraries were too slow or too limited and NumPy alone made per-object geometry awkward. Much of the
-binding code, refactorings and documentation were written with Claude and curated by the author.
-
-It is the math of [LIGA Football 11v11](https://liga.manvel.dev/), a free eleven-a-side football (soccer) game that plays in
-the browser, and of its deterministic simulation.
+It began as the math of a game [engine](https://github.com/mnvl/engine-legacy) written from 2004 on, and was brought
+up to C++20 for robotics simulation, where Python's geometry libraries were too slow or too limited and NumPy alone
+made per-object geometry awkward. Much of the binding code, refactorings and documentation were written with Claude
+and curated by the author.
 
 Our benchmarks show that this library is 2x faster on average than what's available for Python right now when working
 on single objects (see examples/benchmark.py).
