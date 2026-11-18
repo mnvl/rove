@@ -91,6 +91,7 @@ public:
 	void clear()
 	{
 		items_.clear();
+		bounds_of_.clear();
 		root_.reset();
 	}
 
@@ -126,6 +127,7 @@ public:
 			throw std::invalid_argument("octree::build: items in a box that is empty or not finite");
 
 		root_.reset(new node(bounds_));
+		bounds_of_items();
 
 		std::vector<size_t> indices(items_.size());
 		for (size_t i = 0; i < items_.size(); ++i) {
@@ -187,8 +189,10 @@ public:
 	/**
 	 * @brief Append to @p result the payload of every item the query meets
 	 *
-	 * Meets as QueryTraits::intersects says; a query of the stored type is
-	 * tested by the tree's own traits.  Each item once, in no order.
+	 * Meets as QueryTraits::intersects says, after a bounds test (an item
+	 * whose box misses QueryTraits::bounds(query) is not asked about, as in
+	 * hash_grid); a query of the stored type is tested by the tree's own
+	 * traits.  Each item once, in no order.
 	 */
 	template<class Query, class QueryTraits = default_query_traits<primitive_type, traits_type, Query>>
 		requires spatial_query_traits_for<QueryTraits, primitive_type, Query>
@@ -332,6 +336,7 @@ public:
 		std::vector<bool> placed(result.items_.size(), false);
 		size_t placed_count = 0;
 		result.root_.reset(new node(result.bounds_));
+		result.bounds_of_items();
 		load_node(in, *result.root_, placed, placed_count, 0);
 		if (placed_count != result.items_.size()) {
 			throw std::runtime_error("octree::load: nodes do not hold every item");
@@ -561,7 +566,7 @@ private:
 		std::array<std::vector<size_t>, subclusters_count> child_indices;
 
 		for (size_t item_index : indices) {
-			aabb_type primitive_bounds = traits_type::bounds(items_[item_index].primitive);
+			aabb_type const &primitive_bounds = bounds_of_[item_index];
 			// A NaN has no place among the children: it stays here (a query's tests then answer for it, and are false)
 			if (primitive_bounds.is_empty()) {
 				current.item_indices.push_back(item_index);
@@ -600,6 +605,17 @@ private:
 		}
 	}
 
+	// Each item's box, by its index: what build() places the items by and a query tests them by first.  A query's own test runs
+	// only on an item whose box meets the query's, as in hash_grid -- an item spanning a dividing plane stays in the node above, and
+	// a scene laid flat across the tree keeps most of its items in the root, every query's to look at.
+	void bounds_of_items()
+	{
+		bounds_of_.resize(items_.size());
+		for (size_t i = 0; i < items_.size(); ++i) {
+			bounds_of_[i] = traits_type::bounds(items_[i].primitive);
+		}
+	}
+
 	void require_built(char const *what) const
 	{
 		if (root_ == nullptr) {
@@ -618,7 +634,9 @@ private:
 	void visit_node(node const &current, Query const &query, aabb_type const &query_bounds, F &f) const
 	{
 		for (size_t item_index : current.item_indices) {
-			if (QueryTraits::intersects(items_[item_index].primitive, query)) {
+			if (bounds_of_[item_index].test_intersection(query_bounds) &&
+				QueryTraits::intersects(items_[item_index].primitive, query))
+			{
 				f(item_index);
 			}
 		}
@@ -701,6 +719,7 @@ private:
 	size_t leaf_items_threshold_;
 	scalar_type min_subcluster_diagonal_sq_;
 	std::vector<value_type> items_;
+	std::vector<aabb_type> bounds_of_;  ///< each item's box, from build() or load()
 	std::unique_ptr<node> root_;      ///< null until build(), and again after insert() or clear()
 };
 

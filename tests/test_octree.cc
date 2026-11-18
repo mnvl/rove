@@ -884,6 +884,61 @@ BOOST_AUTO_TEST_CASE(load_refuses_a_node_naming_a_missing_item)
 	BOOST_REQUIRE_THROW(loaded(no_index), std::runtime_error);
 }
 
+// A query tests an item only where the item's box meets the query's: the boxes are the tree's, kept from build() (and load()),
+// not worked out again per item per query.  A street's ground is triangles spread flat over the tree, most of them across one
+// of the root's dividing planes, and so all in the root, every query's to look at: with the test of a triangle against a box
+// its own box, worked out each time, a query of such a tree took 200-400 us (arena, 2026-11-17).
+namespace
+{
+
+struct recording_box_query
+{
+	static inline std::vector<rove::triangle<3>> asked;
+	static rove::aabb<3> bounds(rove::aabb<3> const &query) { return query; }
+	static bool intersects(rove::triangle<3> const &stored, rove::aabb<3> const &query)
+	{
+		asked.push_back(stored);
+		return rove::spatial_query_traits<rove::triangle<3>, rove::aabb<3>>::intersects(stored, query);
+	}
+};
+
+// Long thin triangles across the plane x = 0 at y = -1..1: none fits in a child, all stay in the root.
+std::vector<rove::triangle<3>> strips_across_the_root(size_t n)
+{
+	std::vector<rove::triangle<3>> strips;
+	for (size_t i = 0; i < n; ++i) {
+		rove::scalar const y = -0.99f + 1.98f * rove::scalar(i) / rove::scalar(n);
+		strips.emplace_back(rove::vec<3>(-0.9f, y, 0.0f), rove::vec<3>(0.9f, y, 0.0f), rove::vec<3>(0.9f, y + 0.005f, 0.01f));
+	}
+	return strips;
+}
+
+}
+
+BOOST_AUTO_TEST_CASE(a_query_tests_only_the_items_whose_box_meets_its_own)
+{
+	std::vector<rove::triangle<3>> const strips = strips_across_the_root(400);
+	triangle_octree_t tree(rove::aabb<3>(rove::vec<3>(-1, -1, -1), rove::vec<3>(1, 1, 1)), 8);
+	for (size_t i = 0; i < strips.size(); ++i) {
+		tree.insert(strips[i], static_cast<int>(i));
+	}
+	tree.build();
+
+	triangle_octree_t const copy = loaded(saved(tree));
+	for (triangle_octree_t const *t : std::vector<triangle_octree_t const *>{&tree, &copy}) {
+		for (int k = 0; k < 50; ++k) {
+			rove::aabb<3> const box = random_aabb();
+			recording_box_query::asked.clear();
+			std::vector<int> found;
+			t->query_intersection<rove::aabb<3>, recording_box_query>(box, found);
+			for (rove::triangle<3> const &asked : recording_box_query::asked) {
+				BOOST_REQUIRE(rove::spatial_traits<rove::triangle<3>>::bounds(asked).test_intersection(box));
+			}
+			BOOST_REQUIRE(to_set(found) == brute_force_intersection_set(strips, box));
+		}
+	}
+}
+
 // What the contact of a miss says is defined: MemorySanitizer took it as uninitialised
 BOOST_AUTO_TEST_CASE(a_miss_is_all_zero)
 {

@@ -109,8 +109,9 @@ struct spatial_traits<triangle<3, T>>: spatial_traits_3<T> {
 				result.lo.i[k] = result.hi.i[k] = std::numeric_limits<T>::quiet_NaN();
 				continue;
 			}
-			result.lo.i[k] = std::fmin(std::fmin(a, b), c);
-			result.hi.i[k] = std::fmax(std::fmax(a, b), c);
+			// (no NaN here: comparisons, inlined, where std::fmin is a call per pair -- a tree's load works out every item's box)
+			result.lo.i[k] = (std::min)((std::min)(a, b), c);
+			result.hi.i[k] = (std::max)((std::max)(a, b), c);
 		}
 		return result;
 	}
