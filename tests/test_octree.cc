@@ -11,6 +11,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 #include <boost/test/unit_test.hpp>
 #include <rove/aabb.h>
@@ -937,6 +938,54 @@ BOOST_AUTO_TEST_CASE(a_query_tests_only_the_items_whose_box_meets_its_own)
 			BOOST_REQUIRE(to_set(found) == brute_force_intersection_set(strips, box));
 		}
 	}
+}
+
+// A tree is handed on, not copied: copy_unbuilt() is the copy
+static_assert(std::is_nothrow_move_constructible_v<triangle_octree_t>);
+static_assert(std::is_nothrow_move_assignable_v<triangle_octree_t>);
+static_assert(!std::is_copy_constructible_v<triangle_octree_t>);
+static_assert(!std::is_copy_assignable_v<triangle_octree_t>);
+
+BOOST_AUTO_TEST_CASE(a_moved_tree_is_the_tree_and_leaves_an_empty_one_not_built)
+{
+	rove::aabb<3> const box(rove::vec<3>(-1, -1, -1), rove::vec<3>(1, 1, 1));
+	auto const built = [&](float shift, int count) {
+		triangle_octree_t tree(box, 4, 1e-5f);
+		for (int i = 0; i < count; ++i) {
+			rove::vec<3> const a(-0.9f + 0.015f * float(i), shift, -0.5f);
+			tree.insert(rove::triangle<3>(a, a + rove::vec<3>(0.01f, 0, 0), a + rove::vec<3>(0, 0.01f, 0)), i);
+		}
+		tree.build();
+		return tree;
+	};
+	triangle_octree_t source = built(0.1f, 100);
+	rove::aabb<3> const part(rove::vec<3>(-0.5f, 0, -1), rove::vec<3>(0.1f, 1, 1));
+	std::set<int> const expected = to_set(source.query_intersection(part));
+	BOOST_REQUIRE(!expected.empty() && expected.size() < 100);
+	auto const *const items = &source[0];
+
+	triangle_octree_t made(std::move(source));
+	BOOST_TEST(&made[0] == items);  // the items themselves, not a copy of them
+	BOOST_TEST(made.size() == 100u);
+	BOOST_TEST(made.is_built());
+	BOOST_TEST((to_set(made.query_intersection(part)) == expected));
+	BOOST_TEST(source.size() == 0u);
+	BOOST_TEST(!source.is_built());
+	BOOST_CHECK_THROW((void)source.query_intersection(part), std::logic_error);
+
+	// Over a tree that has items of its own, which go
+	triangle_octree_t assigned = built(-0.1f, 7);
+	assigned = std::move(made);
+	BOOST_TEST(&assigned[0] == items);
+	BOOST_TEST(assigned.size() == 100u);
+	BOOST_TEST((to_set(assigned.query_intersection(part)) == expected));
+	BOOST_TEST(made.size() == 0u);
+	BOOST_CHECK_THROW((void)made.query_intersection(part), std::logic_error);
+
+	// The one moved from takes items and a build again
+	made.insert(rove::triangle<3>(rove::vec<3>(0, 0, 0), rove::vec<3>(0.1f, 0, 0), rove::vec<3>(0, 0.1f, 0)), 41);
+	made.build();
+	BOOST_TEST((made.query_intersection(box) == std::vector<int>{41}));
 }
 
 // What the contact of a miss says is defined: MemorySanitizer took it as uninitialised

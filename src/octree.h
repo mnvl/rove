@@ -88,6 +88,12 @@ public:
 		// (a box that holds nothing is no error until build() has items to put in it)
 	}
 
+	/// Moved, a tree takes its items and nodes along and leaves one with no items, not built.  Not copied: copy_unbuilt().
+	octree(octree &&) noexcept = default;
+	octree &operator=(octree &&) noexcept = default;
+	octree(octree const &) = delete;
+	octree &operator=(octree const &) = delete;
+
 	void clear()
 	{
 		items_.clear();
