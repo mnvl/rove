@@ -1390,9 +1390,8 @@ lerp(vec<N,T,S> const &a,vec<N,T,S> const &b,T t)
 	return r;
 }
 
-/// @name Every component compared: whether each of a's is less (and so on) than b's.  This is no order, so a vector has no
-/// operator <, <=, > or >=: std::less of a vector is lexicographic (below), which a std::set or std::map takes by default and
-/// std::sort is given.
+/// @name Every component compared: whether each of a's is less (and so on) than b's.  This is no order; a vector's operator <, <=,
+/// > and >= are (below), and are lexicographic.
 /// @{
 template<int N,class T,class S> inline bool
 all_less(vec<N,T,S> const &a,vec<N,T,S> const &b)
@@ -1634,21 +1633,45 @@ std::basic_ostream<Ch, ChT> &operator <<(std::basic_ostream<Ch, ChT> &os, vec<4,
 	return os << v.x << ' ' << v.y << ' ' << v.z << ' ' << v.w;
 }
 
+/// @name Lexicographic order: the first component in which a and b differ decides, as std::array's and std::tuple's; equal when
+/// none does, as operator ==.  So std::set, std::map, std::sort and std::ranges::sort order vectors by default.  It is no
+/// geometry: "below" is all_less (above), and rove::min, max and clamp go component by component where std::min, max and clamp
+/// pick one whole vector by this order.  Only the components' < is used (a dfloat vector has one); NaN has no place in it.
+///
+/// Before rove 3, operator < was every component's (all_less), which is no order: a std::set kept one of two vectors neither of
+/// which was below the other.  3.0 had none, and a std::less of its own, which libc++ passes over in a set or map for the
+/// vectors' operator <.
+/// @{
+template<int N, class T, class S> constexpr bool
+operator <(vec<N,T,S> const &a, vec<N,T,S> const &b)
+{
+	for (int n = 0; n < N; ++n) {
+		if (a.i[n] < b.i[n]) return true;
+		if (b.i[n] < a.i[n]) return false;
+	}
+	return false;
 }
 
-/// A set or map of vectors orders them lexicographically, component by component.  NaN has no place in it.
-template<int N, class T, class S>
-struct std::less<rove::vec<N, T, S>>
+template<int N, class T, class S> constexpr bool
+operator >(vec<N,T,S> const &a, vec<N,T,S> const &b)
 {
-	bool operator()(rove::vec<N, T, S> const &a, rove::vec<N, T, S> const &b) const
-	{
-		for (int n = 0; n < N; ++n) {
-			if (a.i[n] < b.i[n]) return true;
-			if (b.i[n] < a.i[n]) return false;
-		}
-		return false;
-	}
-};
+	return b < a;
+}
+
+template<int N, class T, class S> constexpr bool
+operator <=(vec<N,T,S> const &a, vec<N,T,S> const &b)
+{
+	return !(b < a);
+}
+
+template<int N, class T, class S> constexpr bool
+operator >=(vec<N,T,S> const &a, vec<N,T,S> const &b)
+{
+	return !(a < b);
+}
+/// @}
+
+}
 
 /// The components' hashes combined; +0 and -0, equal components, hash alike.
 template<int N, class T, class S>

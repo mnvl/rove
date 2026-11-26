@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2004-2026 Manvel Avetisian
 
+#include <algorithm>
+#include <concepts>
 #include <cstdint>
+#include <functional>
 #include <cstring>
 #include <initializer_list>
 #include <limits>
@@ -1207,8 +1210,8 @@ BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(vec_compare_and_shape)
 
-// The four comparisons that ask about every component.  They are no order (std::set and std::sort need one), so a vector has no
-// operator < and friends, and std::less and std::hash of a vector are rove's own.
+// The four comparisons that ask about every component, which are no order (std::set and std::sort need one), and operator < and
+// friends, which are one: lexicographic.  std::hash of a vector is rove's own.
 
 BOOST_AUTO_TEST_CASE(all_less_and_friends_ask_about_every_component)
 {
@@ -1262,6 +1265,85 @@ BOOST_AUTO_TEST_CASE(a_set_of_vectors_keeps_every_different_one_in_lexicographic
 		BOOST_REQUIRE(!(less(p, q) && less(q, p)));
 		BOOST_REQUIRE_EQUAL(less(p, q) || less(q, p), !(p == q));
 	}
+}
+
+BOOST_AUTO_TEST_CASE(operator_less_is_lexicographic_not_every_component)
+{
+	using v3 = rove::vec<3>;
+	// the first component that differs decides; the rest are not looked at
+	BOOST_REQUIRE(v3(0, 9, 9) < v3(1, 0, 0));
+	BOOST_REQUIRE(!(v3(1, 0, 0) < v3(0, 9, 9)));
+	BOOST_REQUIRE(v3(1, 2, 3) < v3(1, 2, 4));
+	BOOST_REQUIRE(v3(1, 2, 3) < v3(1, 3, -100));
+	BOOST_REQUIRE(!(v3(1, 2, 3) < v3(1, 2, 3)));
+	// what every-component < said: neither of these is below the other, yet one is less
+	v3 const a(0, 5, 0), b(1, 0, 0);
+	BOOST_REQUIRE(!rove::all_less(a, b) && !rove::all_less(b, a));
+	BOOST_REQUIRE(a < b);
+	// every size and storage, the components in their order in memory
+	BOOST_REQUIRE(rove::vec<2>(1, -1) < rove::vec<2>(1, 0));
+	BOOST_REQUIRE(rove::vec<4>(0, 0, 0, -1) < rove::vec<4>(0, 0, 0, 0));
+	BOOST_REQUIRE(rove::xz<double>(0, 7) < rove::xz<double>(1, -7));
+	rove::vec<5> lo, hi;
+	lo.set_all(0);
+	hi.set_all(0);
+	hi.i[4] = 1;
+	BOOST_REQUIRE(lo < hi);
+	BOOST_REQUIRE(!(hi < lo));
+}
+
+BOOST_AUTO_TEST_CASE(the_four_comparisons_agree_with_each_other_and_with_equality)
+{
+	std::mt19937 rng(5);
+	std::uniform_int_distribution<int> small(-1, 1);
+	for (int k = 0; k < 2000; ++k) {
+		rove::vec<4> const p(small(rng), small(rng), small(rng), small(rng)), q(small(rng), small(rng), small(rng), small(rng));
+		BOOST_REQUIRE_EQUAL(p > q, q < p);
+		BOOST_REQUIRE_EQUAL(p <= q, !(q < p));
+		BOOST_REQUIRE_EQUAL(p >= q, !(p < q));
+		// a strict weak order whose equivalence is equality: of two different vectors exactly one is less
+		BOOST_REQUIRE(!(p < p));
+		BOOST_REQUIRE(!(p < q && q < p));
+		BOOST_REQUIRE_EQUAL(p < q || q < p, p != q);
+		BOOST_REQUIRE_EQUAL(p <= q && p >= q, p == q);
+		// std::less of a vector is its operator <
+		BOOST_REQUIRE_EQUAL(std::less<rove::vec<4>>()(p, q), p < q);
+		BOOST_REQUIRE_EQUAL(std::less<>()(p, q), p < q);
+	}
+	static_assert(std::totally_ordered<rove::vec<3>>);
+	static_assert(std::totally_ordered<rove::xz<float>>);
+}
+
+BOOST_AUTO_TEST_CASE(the_standard_algorithms_and_containers_take_the_order_by_default)
+{
+	std::vector<rove::vec<2>> v{rove::vec<2>(1, 0), rove::vec<2>(0, 2), rove::vec<2>(0, 1), rove::vec<2>(-1, 5)};
+	std::ranges::sort(v);
+	BOOST_REQUIRE(v[0] == rove::vec<2>(-1, 5));
+	BOOST_REQUIRE(v[1] == rove::vec<2>(0, 1));
+	BOOST_REQUIRE(v[2] == rove::vec<2>(0, 2));
+	BOOST_REQUIRE(v[3] == rove::vec<2>(1, 0));
+	std::ranges::reverse(v);
+	std::sort(v.begin(), v.end());
+	BOOST_REQUIRE(std::ranges::is_sorted(v));
+	std::set<rove::vec<2>> const s(v.begin(), v.end());
+	BOOST_REQUIRE(std::ranges::equal(s, v));
+	std::map<rove::vec<3>, int> m;
+	m[rove::vec<3>(1, 0, 0)] = 1;
+	m[rove::vec<3>(0, 1, 0)] = 2;
+	m[rove::vec<3>(1, 0, 0)] = 3;
+	BOOST_REQUIRE_EQUAL(m.size(), 2u);
+	BOOST_REQUIRE_EQUAL(m.begin()->second, 2);
+	BOOST_REQUIRE_EQUAL(m.at(rove::vec<3>(1, 0, 0)), 3);
+}
+
+BOOST_AUTO_TEST_CASE(std_min_and_max_of_vectors_are_lexicographic_and_rove_s_are_per_component)
+{
+	// with operator < the standard's compile, and pick one whole vector; rove::min and max mix the two
+	rove::vec<3> const a(1, -5, 3), b(-2, 4, 3);
+	BOOST_REQUIRE(std::min(a, b) == b);
+	BOOST_REQUIRE(std::max(a, b) == a);
+	BOOST_REQUIRE(rove::min(a, b) == rove::vec<3>(-2, -5, 3));
+	BOOST_REQUIRE(rove::max(a, b) == rove::vec<3>(1, 4, 3));
 }
 
 BOOST_AUTO_TEST_CASE(a_hash_of_a_vector_tells_apart_what_equality_does)

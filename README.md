@@ -341,7 +341,8 @@ versions.
   `v.check_finite(what)`, `v.check_nonzero(what)` (and `check_finite` of an `aabb` or a `ray`)
 - `project`, `reject`, `reflect`, `angle_between`, `signed_angle`, `move_towards`
 - `to_xz`, `from_xz`, `horizontal_length`; `vec<4>(vec<3>, w)`, `xyz()`, `xy()`
-- `std::less` (lexicographic) and `std::hash` of any vector
+- `<`, `<=`, `>`, `>=`: lexicographic, so `std::set`, `std::map` and `std::sort` order vectors by default (`std::min` and
+  `std::max` pick a whole vector by it; `min` and `max` above go component by component); `std::hash` of any vector
 
 ### Scalars (`scalar.h`)
 - `lerp`, `inverse_lerp`, `remap`, `smoothstep`, `clamp`, `fract`, `radians`, `degrees`

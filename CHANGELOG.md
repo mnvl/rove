@@ -3,6 +3,25 @@
 All notable changes to rove are written here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `operator <`, `<=`, `>` and `>=` of two vectors of the same type: lexicographic (the first component that differs decides, as
+  `std::array`'s), equal where `==` is. `std::set`, `std::map`, `std::sort` and `std::ranges::sort` take it by default, and a
+  vector is `std::totally_ordered`. Only the components' `<` is used, so `dfloat` vectors have it too.
+
+### Changed
+
+- Code written for rove 2, where `<` of two vectors was every component's, compiles again and means another thing: "below" is
+  `all_less`. `std::min`, `std::max` and `std::clamp` of vectors now compile too, and pick one whole vector by this order;
+  `rove::min`, `max` and `clamp` are still component by component.
+
+### Removed
+
+- rove's `std::less` of a vector: the standard's, through `operator <`, is the same order. A `std::set` or `std::map` of vectors
+  did not compile with libc++ (Xcode 26's), which passes over a `std::less` of the key type for its `operator <`.
+
 ## [3.0.1] - 2026-11-07
 
 What the independent review of 3.0.0 found.
