@@ -444,8 +444,11 @@ BOOST_AUTO_TEST_CASE(the_vector_helpers_work_on_dfloat_as_on_float)
 	BOOST_REQUIRE_EQUAL(ground.size(), 2u);
 	BOOST_REQUIRE_EQUAL(std::hash<dfloat>()(dfloat(0.0f)), std::hash<dfloat>()(dfloat(-0.0f)));
 	BOOST_REQUIRE_EQUAL(std::hash<dfloat>()(dfloat(1.5f)), std::hash<float>()(1.5f));
-	std::set<V> ordered{V(0.0f, 1.0f, 0.0f), V(1.0f, 0.0f, 0.0f)};
+	std::set<V> ordered{V(1.0f, 0.0f, 0.0f), V(0.0f, 1.0f, 0.0f)};
 	BOOST_REQUIRE_EQUAL(ordered.size(), 2u);
+	BOOST_REQUIRE(*ordered.begin() == V(0.0f, 1.0f, 0.0f));             // lexicographic, by dfloat's own <
+	BOOST_REQUIRE(V(0.0f, 9.0f, 9.0f) < V(1.0f, 0.0f, 0.0f));
+	BOOST_REQUIRE(V(1.0f, 0.0f, 0.0f) >= V(1.0f, 0.0f, 0.0f));
 }
 
 BOOST_AUTO_TEST_CASE(wrap_and_the_scalar_helpers_work_on_dfloat)
